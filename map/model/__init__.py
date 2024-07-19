@@ -1,3 +1,4 @@
+from .necks import *
 from .lidar.lidar2map import LiDAR2Map
 from .lidar.pointpillar import PointPillar
 from .camera.lift_splat import LiftSplat

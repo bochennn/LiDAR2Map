@@ -1,4 +1,6 @@
 **/build
-**.so
+**/logs
 **__pycache__**
+**.so
 *.pyc
+*.png

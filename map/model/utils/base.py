@@ -86,7 +86,7 @@ class BasicConv2d(nn.Module):
 class BEV_FPD(nn.Module):
     def __init__(self, inC, outC, instance_seg=True, embedded_dim=16, direction_pred=True, direction_dim=37):
         super(BEV_FPD, self).__init__()
-        trunk = resnet18(pretrained=False, zero_init_residual=True)
+        trunk = resnet18(zero_init_residual=True)
         self.conv1 = nn.Conv2d(inC, 64, kernel_size=7, stride=2, padding=3,
                                bias=False)
         self.bn1 = trunk.bn1

@@ -6,9 +6,10 @@ Authors: Jonah Philion and Sanja Fidler
 
 import torch
 from torch import nn
-import numpy as np
-import torch.nn.functional as F
-from efficientnet_pytorch import EfficientNet
+from easydict import EasyDict as edict
+# import numpy as np
+# import torch.nn.functional as F
+# from efficientnet_pytorch import EfficientNet
 
 from ..utils.base import Up, BEV_FPD
 
@@ -37,12 +38,12 @@ class CamEncode(nn.Module):
         # self.trunk = EfficientNet.from_pretrained("efficientnet-b0")
         #
         f = open('model/fusion/bevfusion/camera-bev256d2.yaml', 'r')
-        cfg = yaml.safe_load(f)
-        encoders = cfg['model']['encoders']
+        cfg = edict(yaml.safe_load(f))
+        encoders = cfg.model.encoders
         self.encoders = nn.ModuleDict(
             {
-                "backbone": build_backbone(encoders["camera"]["backbone"]),
-                "neck": build_neck(encoders["camera"]["neck"]),
+                "backbone": build_backbone(encoders.camera.backbone),
+                "neck": build_neck(encoders.camera.neck),
             }
         )
         self.encoders['backbone'].init_weights()
@@ -55,8 +56,8 @@ class CamEncode(nn.Module):
     def get_depth_feat(self, x):
         # x = self.get_eff_depth(x)
         # bevfusion
-        x = self.encoders["backbone"](x)
-        x = self.encoders["neck"](x)
+        x = self.encoders.backbone(x)
+        x = self.encoders.neck(x)
         #
         if not isinstance(x, torch.Tensor):
             x = x[0]

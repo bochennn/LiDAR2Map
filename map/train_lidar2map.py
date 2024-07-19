@@ -201,7 +201,7 @@ if __name__ == '__main__':
     # logging config
     parser.add_argument('--logdir', type=str, default='./logs/lidar2map')
     parser.add_argument('--local_rank', default=0, type=int)
-    parser.add_argument('--distributed', action='store_true')
+    parser.add_argument('--distributed', action='store_true', default=False)
 
     # nuScenes config
     parser.add_argument('--dataroot', type=str, default='/hdd/ws/data/nuscenes')

@@ -125,7 +125,7 @@ class PosGuidedFeaFusion(nn.Module):
         # add coord for camera
         x_range = torch.linspace(-1, 1, fea_cam.shape[-1], device=fea_cam.device)
         y_range = torch.linspace(-1, 1, fea_cam.shape[-2], device=fea_cam.device)
-        y, x = torch.meshgrid(y_range, x_range)
+        y, x = torch.meshgrid(y_range, x_range, indexing='ij')
 
         y = y.expand([fea_cam.shape[0], 1, -1, -1])
         x = x.expand([fea_cam.shape[0], 1, -1, -1])

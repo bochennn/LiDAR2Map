@@ -4,7 +4,7 @@ from torch.autograd import Function
 from torch.autograd.function import once_differentiable
 from torch.nn.modules.utils import _pair
 
-import tree_filter_cuda as _C
+from .. import tree_filter_cuda as _C
 
 class _Refine(Function):
     @staticmethod

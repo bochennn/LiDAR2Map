@@ -8,7 +8,7 @@ def plane_grid_2d(xbound, ybound):
 
     y = torch.linspace(xmin, xmax, num_x).cuda()
     x = torch.linspace(ymin, ymax, num_y).cuda()
-    y, x = torch.meshgrid(x, y)
+    y, x = torch.meshgrid(x, y, indexing='ij')
     x = x.flatten()
     y = y.flatten()
 
