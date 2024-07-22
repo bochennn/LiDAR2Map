@@ -6,8 +6,7 @@ model:
         type: SwinTransformer
         init_cfg:
           type: 'Pretrained'
-          # checkpoint: 'https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_tiny_patch4_window7_224.pth'
-          checkpoint: '/home/bochen/.cache/torch/hub/checkpoints/swin_tiny_patch4_window7_224.pth'
+          checkpoint: 'https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_tiny_patch4_window7_224.pth'
         embed_dims: 96
         depths: [2, 2, 6, 2]
         num_heads: [3, 6, 12, 24]

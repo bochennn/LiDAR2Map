@@ -3,7 +3,7 @@ _base_ = [
     '../_base_/default_runtime.py'
 ]
 custom_imports = dict(
-    imports=['models.detectors.lidar2map'], allow_failed_imports=False)
+    imports=['map.models.detectors.lidar2map'], allow_failed_imports=False)
 
 point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
 voxel_size = [0.2, 0.2, 8]

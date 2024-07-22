@@ -37,7 +37,7 @@ class CamEncode(nn.Module):
 
         # self.trunk = EfficientNet.from_pretrained("efficientnet-b0")
         #
-        f = open('models/fusion/bevfusion/camera-bev256d2.yaml', 'r')
+        f = open('../plugin/models/fusion/bevfusion/camera-bev256d2.yaml', 'r')
         cfg = edict(yaml.safe_load(f))
         encoders = cfg.model.encoders
         self.encoders = nn.ModuleDict(

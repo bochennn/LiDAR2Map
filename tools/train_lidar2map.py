@@ -6,15 +6,15 @@ from time import time
 
 import numpy as np
 import torch
-from data.const import NUM_CLASSES
-from data.dataset import semantic_dataset
 from easydict import EasyDict as edict
-from evaluation.angle_diff import calc_angle_diff
-from evaluation.iou import get_batch_iou
 from mmcv.runner import get_dist_info, init_dist
-from mmdet3d.utils import setup_multi_processes
-from models import get_model
-from models.loss.loss import DiscriminativeLoss, SimpleLoss
+# from mmdet3d.utils import setup_multi_processes
+from plugin.data.const import NUM_CLASSES
+from plugin.data.dataset import semantic_dataset
+from plugin.evaluation.angle_diff import calc_angle_diff
+from plugin.evaluation.iou import get_batch_iou
+from plugin.models import get_model
+from plugin.models.loss.loss import DiscriminativeLoss, SimpleLoss
 from tensorboardX import SummaryWriter
 from tools.evaluate import eval_iou, onehot_encoding
 from tools.utils import get_root_logger, inplace_relu, write_log
@@ -93,7 +93,6 @@ def train(args):
 
         for batchi, (imgs, trans, rots, intrins, post_trans, post_rots, lidar_data, lidar_mask, car_trans,
                      yaw_pitch_roll, semantic_gt, instance_gt, direction_gt) in enumerate(train_loader):
-            print(61)
             t0 = time()
             opt.zero_grad()
 
@@ -225,8 +224,8 @@ if __name__ == '__main__':
     parser.add_argument('--local_rank', type=int, default=0)
 
     # nuScenes config
-    parser.add_argument('--dataroot', type=str, default='/hdd/ws/data/nuscenes')
-    parser.add_argument('--version', type=str, default='v1.0-mini', choices=['v1.0-trainval', 'v1.0-mini'])
+    parser.add_argument('--dataroot', type=str, default='/data/sfs_turbo/nuscenes')
+    parser.add_argument('--version', type=str, default='v1.0-trainval', choices=['v1.0-trainval', 'v1.0-mini'])
 
     # model config
     parser.add_argument("--model", type=str, default='lidar2map')
