@@ -1,5 +1,7 @@
 **/build
 **/logs
+**/work_dirs
+
 **__pycache__**
 **.so
 *.pyc

@@ -27,14 +27,14 @@ def vis_label(dataroot, version, xbound, ybound):
     colors_plt = ['r', 'b', 'g']
     nusc = NuScenes(version=version, dataroot=dataroot, verbose=False)
     # dataset = HDMapNetDataset(nusc, version=version, dataroot=dataroot, data_conf=data_conf, is_train=False)
-    dataset = HDMapNetSemanticDataset(nusc, version, dataroot, data_conf, is_train=False)
+    dataset = HDMapNetSemanticDataset(nusc, version, dataroot, data_conf, is_train=True)
     
     # gt_path = os.path.join(dataroot, 'samples', 'GT')
     # if not os.path.exists(gt_path):
     #     os.mkdir(gt_path)
 
     car_img = Image.open('icon/car.png')
-    for idx in tqdm.tqdm(range(dataset.__len__())):
+    for idx in tqdm.tqdm(range(0, len(dataset), 10)):
         rec = dataset.samples[idx]
         # imgs, trans, rots, intrins, post_trans, post_rots = dataset.get_imgs(rec)
         vectors = dataset.get_vectors(rec)
@@ -44,12 +44,15 @@ def vis_label(dataroot, version, xbound, ybound):
         semantic_masks, instance_masks, direction_masks = dataset[idx]
 
         # lidar_top_path = dataset.nusc.get_sample_data_path(rec['data']['LIDAR_TOP'])
-        # H, W = instance_masks.shape
-        # xcor = (lidar_data[:, 0] - data_conf['xbound'][0]) // data_conf['xbound'][2]
-        # ycor = (lidar_data[:, 1] - data_conf['ybound'][0]) // data_conf['ybound'][2]
-        # xcor = np.clip(xcor, 0, W - 1).astype(int)
-        # ycor = np.clip(ycor, 0, H - 1).astype(int)
-        # instance_masks[ycor, xcor] = 3
+        H, W = instance_masks.shape
+        xcor = (lidar_data[:, 0] - data_conf['xbound'][0]) // data_conf['xbound'][2]
+        ycor = (lidar_data[:, 1] - data_conf['ybound'][0]) // data_conf['ybound'][2]
+        xcor = np.clip(xcor, 0, W - 1).astype(int)
+        ycor = np.clip(ycor, 0, H - 1).astype(int)
+        instance_masks[ycor, xcor] = 10
+
+        plt.figure('semantic map', figsize=(12, 6))
+        plt.imshow(instance_masks, cmap='OrRd')
 
         # base_path = lidar_top_path.split('/')[-1].replace('__LIDAR_TOP__', '_').split('.')[0]
         # base_path = os.path.join(gt_path, base_path)
