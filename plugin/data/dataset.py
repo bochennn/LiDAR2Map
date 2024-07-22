@@ -65,11 +65,11 @@ class HDMapNetDataset(Dataset):
         return samples
 
     def get_lidar(self, rec):
-        lidar_data = get_lidar_data(self.nusc, rec, nsweeps=3, min_distance=2.2)
+        lidar_data = get_lidar_data(self.nusc, rec, nsweeps=5, min_distance=2.2)
         lidar_data = lidar_data.transpose(1, 0)
         num_points = lidar_data.shape[0]
-        lidar_data = pad_or_trim_to_np(lidar_data, [81920, 5]).astype('float32')      # 81920
-        lidar_mask = np.ones(81920).astype('float32')
+        lidar_data = pad_or_trim_to_np(lidar_data, [163840, 5]).astype('float32')      # 81920
+        lidar_mask = np.ones(163840).astype('float32')
         lidar_mask[num_points:] *= 0.0
         return lidar_data, lidar_mask
 
@@ -125,7 +125,7 @@ class HDMapNetDataset(Dataset):
         post_trans = []
         post_rots = []
 
-        for cam in self.data_conf.cams:
+        for cam in self.data_conf['cams']:
             samp = self.nusc.get('sample_data', rec['data'][cam])
             imgname = os.path.join(self.nusc.dataroot, samp['filename'])
             img = Image.open(imgname)

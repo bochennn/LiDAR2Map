@@ -12,7 +12,7 @@ from PIL import Image
 
 def vis_label(dataroot, version):
     data_conf = {
-        'image_size': (256, 704),
+        'image_size': (900, 1600),
         'xbound': [-30.0, 30.0, 0.15],
         'ybound': [-15.0, 15.0, 0.15],
         'zbound': [-10.0, 10.0, 20.0],
@@ -21,7 +21,7 @@ def vis_label(dataroot, version):
         'angle_class': 36,
         'cams': ['CAM_FRONT_LEFT', 'CAM_FRONT', 'CAM_FRONT_RIGHT',
                  'CAM_BACK_LEFT', 'CAM_BACK', 'CAM_BACK_RIGHT'],
-        'final_dim': (256, 704),
+        'final_dim': (900, 1600),
     }
 
     color_map = np.random.randint(0, 256, (256, 3))
@@ -35,8 +35,8 @@ def vis_label(dataroot, version):
     # if not os.path.exists(gt_path):
     #     os.mkdir(gt_path)
 
-    car_img = Image.open('icon/car.png')
-    for idx in tqdm.tqdm(range(0, len(dataset), 10)):
+    car_img = Image.open('../fig/car.png')
+    for idx in tqdm.tqdm(range(len(dataset))):
         rec = dataset.samples[idx]
         # imgs, trans, rots, intrins, post_trans, post_rots = dataset.get_imgs(rec)
         vectors = dataset.get_vectors(rec)

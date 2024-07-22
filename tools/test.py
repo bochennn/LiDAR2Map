@@ -114,9 +114,9 @@ def eval_iou(model, val_loader, logdir=None, epoch=0):
 
     process_intersects = 0
     process_union = 0
-    directory = os.path.join(logdir, "vis")
-    if not os.path.isdir(directory):
-        os.makedirs(directory)
+    # directory = os.path.join(logdir, "vis")
+    # if not os.path.isdir(directory):
+    #     os.makedirs(directory)
     nums = 0
     min_area_threshold = 220
     # fusion_total_intersects = 0
