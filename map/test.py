@@ -6,7 +6,7 @@ from PIL import Image
 from data.dataset import semantic_dataset
 from data.const import NUM_CLASSES
 from evaluation.iou import get_batch_iou
-from model import get_model
+from models import get_model
 import numpy as np
 import imageio
 import cv2
@@ -237,7 +237,7 @@ def main(args):
         'angle_class': args.angle_class,
         'cams': ['CAM_FRONT_LEFT', 'CAM_FRONT', 'CAM_FRONT_RIGHT',
                  'CAM_BACK_LEFT', 'CAM_BACK', 'CAM_BACK_RIGHT'],
-        'Ncams': 6,
+        # 'Ncams': 6,
         'final_dim': (128, 352),
     }
     if 'temporal' in args.model:

@@ -4,3 +4,4 @@
 **.so
 *.pyc
 *.png
+*.tfevents.*

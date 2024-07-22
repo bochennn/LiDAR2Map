@@ -37,7 +37,7 @@ class CamEncode(nn.Module):
 
         # self.trunk = EfficientNet.from_pretrained("efficientnet-b0")
         #
-        f = open('model/fusion/bevfusion/camera-bev256d2.yaml', 'r')
+        f = open('models/fusion/bevfusion/camera-bev256d2.yaml', 'r')
         cfg = edict(yaml.safe_load(f))
         encoders = cfg.model.encoders
         self.encoders = nn.ModuleDict(
@@ -156,9 +156,9 @@ class LiftSplat(nn.Module):
         self.D, _, _, _ = self.frustum.shape
         self.camencode = CamEncode(self.D, self.camC, self.downsample)
 
-        self.bevencode = BEV_FPD(inC=self.camC, outC=data_conf['num_channels'], instance_seg=instance_seg,
-                                       embedded_dim=embedded_dim, direction_pred=direction_pred,
-                                       direction_dim=direction_dim + 1)
+        # self.bevencode = BEV_FPD(inC=self.camC, outC=data_conf['num_channels'], instance_seg=instance_seg,
+        #                                embedded_dim=embedded_dim, direction_pred=direction_pred,
+        #                                direction_dim=direction_dim + 1)
 
         # toggle using QuickCumsum vs. autograd
         self.use_quickcumsum = True
@@ -266,10 +266,10 @@ class LiftSplat(nn.Module):
 
     def forward(self, img, trans, rots, intrins, post_trans, post_rots, lidar_data, lidar_mask, car_trans, yaw_pitch_roll, flag='training', obtain_bev_feat=False, use_distill=False):
         camera_feature = self.get_voxels(img, rots, trans, intrins, post_rots, post_trans)
-        if obtain_bev_feat:
-            return camera_feature
-        else:
-            semantic, embedding, direction, _ = self.bevencode(camera_feature)
-            return semantic, embedding, direction
+        # if obtain_bev_feat:
+        return camera_feature
+        # else:
+        #     semantic, embedding, direction, _ = self.bevencode(camera_feature)
+        #     return semantic, embedding, direction
 
 

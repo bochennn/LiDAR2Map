@@ -1,27 +1,32 @@
-import os
-import torch
-import random
-import logging
 import argparse
-import numpy as np
+import logging
+import os
+import random
 from time import time
+
+import numpy as np
+import torch
+from data.const import NUM_CLASSES
+from data.dataset import semantic_dataset
+from easydict import EasyDict as edict
+from evaluation.angle_diff import calc_angle_diff
+from evaluation.iou import get_batch_iou
+from mmcv.runner import get_dist_info, init_dist
+from mmdet3d.utils import setup_multi_processes
+from models import get_model
+from models.loss.loss import DiscriminativeLoss, SimpleLoss
 from tensorboardX import SummaryWriter
+from tools.evaluate import eval_iou, onehot_encoding
+from tools.utils import get_root_logger, inplace_relu, write_log
 from torch.optim.lr_scheduler import StepLR
 
-from data.dataset import semantic_dataset
-from data.const import NUM_CLASSES
-from model.loss.loss import SimpleLoss, DiscriminativeLoss
-from evaluation.iou import get_batch_iou
-from evaluation.angle_diff import calc_angle_diff
-from model import get_model
-from tools.evaluate import onehot_encoding, eval_iou
-from tools.utils import inplace_relu, write_log, get_root_logger
 # os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:600'
 
 
 def train(args):
     if not os.path.exists(args.logdir):
-        os.mkdir(args.logdir)
+        os.makedirs(args.logdir, exist_ok=True)
+
     logging.basicConfig(filename=os.path.join(args.logdir, "results.log"),
                         filemode='w',
                         format='%(asctime)s: %(message)s',
@@ -31,7 +36,7 @@ def train(args):
 
     logger = get_root_logger()
 
-    data_conf = {
+    data_conf = edict({
         'num_channels': NUM_CLASSES + 1,
         'image_size': args.image_size,
         'xbound': args.xbound,
@@ -40,31 +45,39 @@ def train(args):
         'dbound': args.dbound,
         'thickness': args.thickness,
         'angle_class': args.angle_class,
-        # 'cams': ['CAM_FRONT_LEFT', 'CAM_FRONT', 'CAM_FRONT_RIGHT',
-        #          'CAM_BACK_LEFT', 'CAM_BACK', 'CAM_BACK_RIGHT'],
+        'cams': ['CAM_FRONT_LEFT', 'CAM_FRONT', 'CAM_FRONT_RIGHT',
+                 'CAM_BACK_LEFT', 'CAM_BACK', 'CAM_BACK_RIGHT'],
         # 'Ncams': 6,
         'final_dim': (256, 704),
-    }
+    })
 
-    parser_name = 'segmentationdata'
+    if args.launcher == 'none':
+        distributed = False
+    else:
+        distributed = True
+        init_dist(args.launcher)
+        # re-set gpu_ids with distributed training mode
+        local_rank, world_size = get_dist_info()
+        # cfg.gpu_ids = range(world_size)
+        args.local_rank = local_rank
 
-    if args.distributed:
-        torch.cuda.set_device(args.local_rank)
-        torch.distributed.init_process_group(backend='nccl', init_method='env://')
-    [train_loader, val_loader], [train_sampler, val_sampler] = semantic_dataset(args.version, args.dataroot, data_conf, args.bsz, args.nworkers, args.distributed, parser_name)
+    [train_loader, val_loader], [train_sampler, val_sampler] = semantic_dataset(args.version, args.dataroot, data_conf, args.bsz, args.nworkers, distributed)
     model = get_model(args.model, data_conf, args.instance_seg, args.embedding_dim, args.direction_pred, args.angle_class)
     model.apply(inplace_relu)
+
     if args.finetune:
         model.load_state_dict(torch.load(args.modelf, map_location='cpu'), strict=True)
     device = torch.device("cuda", args.local_rank)
-    if args.distributed:
+
+    if distributed:
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model).to(device)
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.local_rank], find_unused_parameters=True)
     else:
         model.cuda()
+
     opt = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     sched = StepLR(opt, 20, 0.1)
-    writer = SummaryWriter(logdir=args.logdir)
+    writer = SummaryWriter(logdir=args.logdir if args.local_rank == 0 else None)
 
     loss_fn = SimpleLoss(args.pos_weight).cuda()
     embedded_loss_fn = DiscriminativeLoss(args.embedding_dim, args.delta_v, args.delta_d).cuda()
@@ -74,11 +87,13 @@ def train(args):
     counter = 0
     last_idx = len(train_loader) - 1
     for epoch in range(args.nepochs):
-        if args.distributed:
+        if distributed:
             train_sampler.set_epoch(epoch)
             # val_sampler.set_epoch(epoch)
+
         for batchi, (imgs, trans, rots, intrins, post_trans, post_rots, lidar_data, lidar_mask, car_trans,
                      yaw_pitch_roll, semantic_gt, instance_gt, direction_gt) in enumerate(train_loader):
+            print(61)
             t0 = time()
             opt.zero_grad()
 
@@ -174,10 +189,11 @@ def train(args):
         write_log(writer, iou, 'eval', counter)
         # write_log(writer, fusion_iou, 'eval_fusion', counter)
         model_name = os.path.join(args.logdir, f"model{epoch}.pt")
-        if args.distributed:
+        if distributed and args.local_rank == 0:
             torch.save(model.module.state_dict(), model_name)
         else:
             torch.save(model.state_dict(), model_name)
+
         logger.info(f"{model_name} saved")
         model.train()
 
@@ -200,8 +216,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='LiDAR2Map training.')
     # logging config
     parser.add_argument('--logdir', type=str, default='./logs/lidar2map')
-    parser.add_argument('--local_rank', default=0, type=int)
-    parser.add_argument('--distributed', action='store_true', default=False)
+    # parser.add_argument('--distributed', action='store_true', default=False)
+    parser.add_argument(
+        '--launcher',
+        choices=['none', 'pytorch', 'slurm', 'mpi'],
+        default='none',
+        help='job launcher')
+    parser.add_argument('--local_rank', type=int, default=0)
 
     # nuScenes config
     parser.add_argument('--dataroot', type=str, default='/hdd/ws/data/nuscenes')

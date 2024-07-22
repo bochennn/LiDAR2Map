@@ -1,19 +1,19 @@
 import os
-import numpy as np
 
+import numpy as np
 import torch
-from PIL import Image
-from pyquaternion import Quaternion
 from nuscenes import NuScenes
 from nuscenes.utils.splits import create_splits_scenes
-
+from PIL import Image
+from pyquaternion import Quaternion
 from torch.utils.data import Dataset
-from .rasterize import preprocess_map
-from .const import CAMS, NUM_CLASSES, IMG_ORIGIN_H, IMG_ORIGIN_W
-from .vector_map import VectorizedLocalMap
+
+from .const import IMG_ORIGIN_H, IMG_ORIGIN_W, NUM_CLASSES
+from .image import img_transform, normalize_img
 from .lidar import get_lidar_data
-from .image import normalize_img, img_transform
+from .rasterize import preprocess_map
 from .utils import label_onehot_encoding
+from .vector_map import VectorizedLocalMap
 
 
 def pad_or_trim_to_np(x, shape, pad_val=0):
@@ -125,7 +125,7 @@ class HDMapNetDataset(Dataset):
         post_trans = []
         post_rots = []
 
-        for cam in CAMS:
+        for cam in self.data_conf.cams:
             samp = self.nusc.get('sample_data', rec['data'][cam])
             imgname = os.path.join(self.nusc.dataroot, samp['filename'])
             img = Image.open(imgname)
@@ -190,11 +190,11 @@ class HDMapNetSemanticDataset(HDMapNetDataset):
         return imgs, trans, rots, intrins, post_trans, post_rots, lidar_data, lidar_mask, car_trans, yaw_pitch_roll, semantic_masks, instance_masks, direction_masks
 
 
-def semantic_dataset(version, dataroot, data_conf, bsz, nworkers, distributed, parser_name):
+def semantic_dataset(version, dataroot, data_conf, bsz, nworkers, distributed, parser_name='segmentation'):
     nusc = NuScenes(version=version, dataroot=dataroot, verbose=False)
 
     parser = {
-        'segmentationdata': HDMapNetSemanticDataset,
+        'segmentation': HDMapNetSemanticDataset,
     }[parser_name]
 
     train_dataset = parser(nusc, version, dataroot, data_conf, is_train=True)
