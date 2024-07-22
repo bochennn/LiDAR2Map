@@ -3,23 +3,25 @@ import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 import tqdm
-from data.dataset import CAMS, HDMapNetDataset, HDMapNetSemanticDataset
-from data.image import denormalize_img
-from data.utils import get_proj_mat, perspective
+from plugin.data.dataset import HDMapNetSemanticDataset
+from plugin.data.image import denormalize_img
+from plugin.data.utils import get_proj_mat, perspective
 from nuscenes import NuScenes
 from PIL import Image
 
 
-def vis_label(dataroot, version, xbound, ybound):
+def vis_label(dataroot, version):
     data_conf = {
-        'image_size': (900, 1600),
+        'image_size': (256, 704),
         'xbound': [-30.0, 30.0, 0.15],
         'ybound': [-15.0, 15.0, 0.15],
         'zbound': [-10.0, 10.0, 20.0],
         'dbound': [1.0, 60.0, 0.5],
         'thickness': 5,
         'angle_class': 36,
-        'final_dim': (900, 1600),
+        'cams': ['CAM_FRONT_LEFT', 'CAM_FRONT', 'CAM_FRONT_RIGHT',
+                 'CAM_BACK_LEFT', 'CAM_BACK', 'CAM_BACK_RIGHT'],
+        'final_dim': (256, 704),
     }
 
     color_map = np.random.randint(0, 256, (256, 3))
@@ -78,7 +80,7 @@ def vis_label(dataroot, version, xbound, ybound):
         # plt.show()
         # plt.close()
 
-        for img, intrin, rot, tran, cam in zip(imgs, intrins, rots, trans, CAMS):
+        for img, intrin, rot, tran, cam in zip(imgs, intrins, rots, trans, data_conf['cams']):
             img = denormalize_img(img)
             P = get_proj_mat(intrin, rot, tran)
             plt.figure(cam, figsize=(12, 6))
@@ -114,4 +116,4 @@ if __name__ == '__main__':
     parser.add_argument("--ybound", nargs=3, type=float, default=[-15.0, 15.0, 0.15])
     args = parser.parse_args()
 
-    vis_label(args.dataroot, args.version, args.xbound, args.ybound)
+    vis_label(args.dataroot, args.version)

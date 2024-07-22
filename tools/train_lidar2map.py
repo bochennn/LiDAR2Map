@@ -47,7 +47,6 @@ def train(args):
         'angle_class': args.angle_class,
         'cams': ['CAM_FRONT_LEFT', 'CAM_FRONT', 'CAM_FRONT_RIGHT',
                  'CAM_BACK_LEFT', 'CAM_BACK', 'CAM_BACK_RIGHT'],
-        # 'Ncams': 6,
         'final_dim': (256, 704),
     })
 
