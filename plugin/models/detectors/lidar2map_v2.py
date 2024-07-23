@@ -56,6 +56,7 @@ class LiDAR2MapV2(MVXTwoStageDetector):
             img_feats = self.img_backbone(img)
         else:
             return None
+
         if self.with_img_neck:
             img_feats = self.img_neck(img_feats)
         if self.with_view_transform:

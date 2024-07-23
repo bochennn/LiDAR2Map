@@ -198,7 +198,7 @@ class BEV_FPD(nn.Module):
             x_embedded = None
 
         if self.direction_pred:
-            x_direction = self.up1_embedded(x2, x1)
+            x_direction = self.up1_direction(x2, x1)
             x_direction = self.up2_direction(x_direction)
         else:
             x_direction = None

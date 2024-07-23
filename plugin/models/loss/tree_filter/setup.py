@@ -1,28 +1,21 @@
-import os
 import glob
+import os
+
 import torch
-import shutil
 from setuptools import setup
 from torch.utils.cpp_extension import BuildExtension, CUDAExtension
 
 this_dir = os.path.dirname(os.path.abspath(__file__))
 extensions_dir = os.path.join(this_dir, "src")
-os.environ['LD_LIBRARY_PATH'] = '/home/anaconda3/envs/lib'
-# extra_link_args = ['-L/usr/lib/x86_64-linux-gnu/']
-# libs_dirs = ['/opt/local/lib', '/usr/lib/x86_64-linux-gnu/']
+
 main_file = glob.glob(os.path.join(extensions_dir, "*.cpp"))
-source_cpu = glob.glob(os.path.join(extensions_dir, "*", "*.cpp"))
+source_cpp = glob.glob(os.path.join(extensions_dir, "*", "*.cpp"))
 source_cuda = glob.glob(os.path.join(extensions_dir, "*", "*.cu"))
 
 if torch.cuda.is_available():
-    if 'LD_LIBRARY_PATH' not in os.environ:
-        raise Exception('LD_LIBRARY_PATH is not set.')
-    cuda_lib_path = os.environ['LD_LIBRARY_PATH'].split(':')
-    sources = source_cpu + source_cuda + main_file
+    sources = source_cpp + source_cuda + main_file
 else:
     raise Exception('This implementation is only avaliable for CUDA devices.')
-
-print(sources)
 
 setup(
     name='tree_filter',
@@ -33,9 +26,7 @@ setup(
             name='tree_filter_cuda',
             include_dirs=[extensions_dir],
             sources=sources,
-            library_dirs=cuda_lib_path,
-            extra_compile_args={'cxx':['-O3'],
-                                'nvcc':['-O3']})
+            extra_compile_args={'cxx':['-O3'], 'nvcc':['-O3']})
     ],
     cmdclass={
         'build_ext': BuildExtension

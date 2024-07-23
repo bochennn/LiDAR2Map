@@ -37,7 +37,7 @@ class CamEncode(nn.Module):
 
         # self.trunk = EfficientNet.from_pretrained("efficientnet-b0")
         #
-        f = open('../plugin/models/fusion/bevfusion/camera-bev256d2.yaml', 'r')
+        f = open('plugin/models/fusion/bevfusion/camera-bev256d2.yaml', 'r')
         cfg = edict(yaml.safe_load(f))
         encoders = cfg.model.encoders
         self.encoders = nn.ModuleDict(
@@ -139,22 +139,22 @@ class QuickCumsum(torch.autograd.Function):
 
 
 class LiftSplat(nn.Module):
-    def __init__(self, data_conf, instance_seg=True, embedded_dim=16, direction_pred=True, direction_dim=36):
+    def __init__(self, data_conf):
         super(LiftSplat, self).__init__()
-        self.data_conf = data_conf
+        # self.data_conf = data_conf
 
         dx, bx, nx = gen_dx_bx(data_conf['xbound'], data_conf['ybound'], data_conf['zbound'])
         self.dx = nn.Parameter(dx, requires_grad=False)
         self.bx = nn.Parameter(bx, requires_grad=False)
         self.nx = nn.Parameter(nx, requires_grad=False)
 
-        self.downsample = 8  # 8
+        # self.downsample = 8  # 8
 
-        self.camC = 128
-        self.frustum = self.create_frustum()
+        # self.camC = 128
+        # self.frustum = self.create_frustum()
         # D x H/downsample x D/downsample x 3
-        self.D, _, _, _ = self.frustum.shape
-        self.camencode = CamEncode(self.D, self.camC, self.downsample)
+        # self.D, _, _, _ = self.frustum.shape
+        # self.camencode = CamEncode(self.D, self.camC, self.downsample)
 
         # self.bevencode = BEV_FPD(inC=self.camC, outC=data_conf['num_channels'], instance_seg=instance_seg,
         #                                embedded_dim=embedded_dim, direction_pred=direction_pred,
@@ -165,7 +165,7 @@ class LiftSplat(nn.Module):
 
     def create_frustum(self):
         # make grid in image plane
-        ogfH, ogfW = self.data_conf['final_dim']
+        ogfH, ogfW = self.data_conf['image_size']
         fH, fW = ogfH // self.downsample, ogfW // self.downsample
         ds = torch.arange(*self.data_conf['dbound'], dtype=torch.float).view(-1, 1, 1).expand(-1, fH, fW)
         D, _, _ = ds.shape
@@ -182,7 +182,6 @@ class LiftSplat(nn.Module):
         Returns B x N x D x H/downsample x W/downsample x 3
         """
         B, N, _ = trans.shape
-
         # *undo* post-transformation
         # B x N x D x H x W x 3
         points = self.frustum - post_trans.view(B, N, 1, 1, 1, 3)
@@ -203,9 +202,9 @@ class LiftSplat(nn.Module):
         """
         B, N, C, imH, imW = x.shape
 
-        x = x.view(B*N, C, imH, imW)
-        x = self.camencode(x)
-        x = x.view(B, N, self.camC, self.D, imH//self.downsample, imW//self.downsample)
+        # x = x.view(B*N, C, imH, imW)
+        # x = self.camencode(x)
+        x = x.view(B, N, self.camC, self.D, imH // self.downsample, imW // self.downsample)
         x = x.permute(0, 1, 3, 4, 5, 2)
 
         return x
@@ -264,7 +263,7 @@ class LiftSplat(nn.Module):
 
         return x
 
-    def forward(self, img, trans, rots, intrins, post_trans, post_rots, lidar_data, lidar_mask, car_trans, yaw_pitch_roll, flag='training', obtain_bev_feat=False, use_distill=False):
+    def forward(self, img, trans, rots, intrins, post_trans, post_rots):
         camera_feature = self.get_voxels(img, rots, trans, intrins, post_rots, post_trans)
         # if obtain_bev_feat:
         return camera_feature

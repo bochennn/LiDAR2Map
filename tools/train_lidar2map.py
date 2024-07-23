@@ -92,9 +92,6 @@ def train(args):
         for batchi, (imgs, trans, rots, intrins, post_trans, post_rots, lidar_data, lidar_mask, car_trans,
                      yaw_pitch_roll, semantic_gt, instance_gt, direction_gt) in enumerate(train_loader):
             t0 = time()
-
-            # for param_group, lr in zip(opt.param_groups, sched.get_lr()):
-            #     param_group['lr'] = lr
             opt.zero_grad()
 
             semantic, embedding, direction, feature_distill_loss, logit_distill_loss, fusion_semantic, fusion_embedding, fusion_direction = \
