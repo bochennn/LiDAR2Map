@@ -1,17 +1,18 @@
 
-import torch
+# import torch
+import numpy as np
 
 from mmdet3d.datasets.builder import DATASETS
-from mmdet3d.datasets.nuscenes_dataset import NuScenesDataset
+from mmdet3d.datasets.nuscenes_dataset import NuScenesDataset as _NuScenesDataset
 
 
-@DATASETS.register_module()
-class NuScenesSemanticMapDataset(NuScenesDataset):
-    def __init__(
-        self,
-        **kwargs
-    ):
-        super(NuScenesSemanticMapDataset, self).__init__(**kwargs)
+@DATASETS.register_module(force=True)
+class NuScenesDataset(_NuScenesDataset):
+    # def __init__(
+    #     self,
+    #     **kwargs
+    # ):
+        # super(, self).__init__(**kwargs)
         # patch_h = data_conf['ybound'][1] - data_conf['ybound'][0]
         # patch_w = data_conf['xbound'][1] - data_conf['xbound'][0]
         # canvas_h = int(patch_h / data_conf['ybound'][2])
@@ -122,6 +123,26 @@ class NuScenesSemanticMapDataset(NuScenesDataset):
     #     vectors = self.vector_map.gen_vectorized_samples(location, ego_pose['translation'], ego_pose['rotation'])
     #     return vectors
 
+    def prepare_train_data(self, index):
+        """Training data preparation.
+
+        Args:
+            index (int): Index for accessing the target data.
+
+        Returns:
+            dict: Training data dict of the corresponding index.
+        """
+        input_dict = self.get_data_info(index)
+        if input_dict is None:
+            return None
+        self.pre_pipeline(input_dict)
+        example = self.pipeline(input_dict)
+        # if self.filter_empty_gt and \
+        #         (example is None or
+        #             ~(example['gt_labels_3d']._data != -1).any()):
+        #     return None
+        return example
+
     # def __getitem__(self, idx):
     #     rec = self.samples[idx]
     #     imgs, trans, rots, intrins, post_trans, post_rots = self.get_imgs(rec)
@@ -132,5 +153,47 @@ class NuScenesSemanticMapDataset(NuScenesDataset):
 
     def get_data_info(self, index):
 
-        print(xx)
-        return
+        info = self.data_infos[index]
+        # standard protocol modified from SECOND.Pytorch
+        input_dict = dict(
+            sample_idx=info['token'],
+            pts_filename=info['lidar_path'],
+            sweeps=info['sweeps'],
+            timestamp=info['timestamp'] / 1e6,
+        )
+
+        if self.modality['use_camera']:
+            image_paths = []
+            # lidar2img_rts = []
+            cam2img = []
+            lidar2cam_rts = []
+            for cam_type, cam_info in info['cams'].items():
+                image_paths.append(cam_info['data_path'])
+                # obtain lidar to image transformation matrix
+                lidar2cam_r = np.linalg.inv(cam_info['sensor2lidar_rotation'])
+                lidar2cam_t = cam_info[
+                    'sensor2lidar_translation'] @ lidar2cam_r.T
+                lidar2cam_rt = np.eye(4)
+                lidar2cam_rt[:3, :3] = lidar2cam_r.T
+                lidar2cam_rt[3, :3] = -lidar2cam_t
+                intrinsic = cam_info['camera_intrinsics']
+                viewpad = np.eye(4)
+                viewpad[:intrinsic.shape[0], :intrinsic.shape[1]] = intrinsic
+                # lidar2img_rt = (viewpad @ lidar2cam_rt.T)
+                # lidar2img_rts.append(lidar2img_rt)
+                cam2img.append(intrinsic)
+                lidar2cam_rts.append(lidar2cam_rt)
+
+            input_dict.update(
+                dict(
+                    img_filename=image_paths,
+                    # lidar2img=lidar2img_rts,
+                    cam2img=np.stack(cam2img),
+                    lidar2cam=np.stack(lidar2cam_rts)
+                ))
+
+        if not self.test_mode:
+            annos = self.get_ann_info(index)
+            input_dict['ann_info'] = annos
+
+        return input_dict

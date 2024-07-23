@@ -18,7 +18,7 @@ from plugin.models.loss.loss import DiscriminativeLoss, SimpleLoss
 from tensorboardX import SummaryWriter
 from tools.evaluate import eval_iou, onehot_encoding
 from tools.utils import get_root_logger, inplace_relu, write_log
-from torch.optim.lr_scheduler import StepLR
+from torch.optim.lr_scheduler import CosineAnnealingLR
 
 # os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:600'
 
@@ -52,19 +52,19 @@ def train(args):
 
     if args.launcher == 'none':
         distributed = False
+        local_rank = 0
     else:
         distributed = True
         init_dist(args.launcher)
         # re-set gpu_ids with distributed training mode
-        local_rank, world_size = get_dist_info()
-        # cfg.gpu_ids = range(world_size)
+        local_rank, _ = get_dist_info()
         args.local_rank = local_rank
 
-    [train_loader, val_loader], [train_sampler, val_sampler] = semantic_dataset(args.version, args.dataroot, data_conf, args.bsz, args.nworkers, distributed)
+    [train_loader, val_loader], [train_sampler, _] = semantic_dataset(args.version, args.dataroot, data_conf, args.bsz, args.nworkers, distributed)
     model = get_model(args.model, data_conf, args.instance_seg, args.embedding_dim, args.direction_pred, args.angle_class)
     model.apply(inplace_relu)
 
-    if args.finetune:
+    if args.modelf:
         model.load_state_dict(torch.load(args.modelf, map_location='cpu'), strict=True)
     device = torch.device("cuda", args.local_rank)
 
@@ -75,7 +75,7 @@ def train(args):
         model.cuda()
 
     opt = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    sched = StepLR(opt, 20, 0.1)
+    sched = CosineAnnealingLR(opt, T_max=args.nepochs * len(train_loader), eta_min=1e-5)
     writer = SummaryWriter(logdir=args.logdir if args.local_rank == 0 else None)
 
     loss_fn = SimpleLoss(args.pos_weight).cuda()
@@ -84,15 +84,17 @@ def train(args):
 
     model.train()
     counter = 0
-    last_idx = len(train_loader) - 1
+
     for epoch in range(args.nepochs):
         if distributed:
             train_sampler.set_epoch(epoch)
-            # val_sampler.set_epoch(epoch)
 
         for batchi, (imgs, trans, rots, intrins, post_trans, post_rots, lidar_data, lidar_mask, car_trans,
                      yaw_pitch_roll, semantic_gt, instance_gt, direction_gt) in enumerate(train_loader):
             t0 = time()
+
+            # for param_group, lr in zip(opt.param_groups, sched.get_lr()):
+            #     param_group['lr'] = lr
             opt.zero_grad()
 
             semantic, embedding, direction, feature_distill_loss, logit_distill_loss, fusion_semantic, fusion_embedding, fusion_direction = \
@@ -132,15 +134,17 @@ def train(args):
                 angle_diff = 0
 
             final_loss = (seg_loss + fusion_seg_loss + feature_distill_loss + logit_distill_loss) * args.scale_seg + \
-                         var_loss * args.scale_var + dist_loss * args.scale_dist + direction_loss * args.scale_direction
+                          var_loss * args.scale_var + dist_loss * args.scale_dist + direction_loss * args.scale_direction
 
             final_loss.mean().backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
+
             opt.step()
+            sched.step()
             counter += 1
             t1 = time()
 
-            if counter % 10 == 0:
+            if counter % 10 == 0 and local_rank == 0:
                 if isinstance(semantic, list):
                     semantic = semantic[0]
                     fusion_semantic = fusion_semantic[0]
@@ -150,7 +154,7 @@ def train(args):
                 fusion_intersects, fusion_union = get_batch_iou(onehot_encoding(fusion_semantic), semantic_gt)
                 fusion_iou = fusion_intersects / (fusion_union + 1e-7)
                 if fusion_iou[1:].mean() != iou[1:].mean():
-                    logger.info(f"TRAIN[{epoch:>3d}]: [{batchi:>4d}/{last_idx}] "
+                    logger.info(f"TRAIN[{epoch:>3d}]: [{batchi+1:>4d}/{len(train_loader)}] "
                                 f"Lr: {opt.state_dict()['param_groups'][0]['lr']:>7.4f}  "
                                 f"Time: {t1-t0:>7.4f}  "
                                 f"Loss: {final_loss.item():>7.4f}  "
@@ -177,25 +181,21 @@ def train(args):
                     writer.add_scalar('train/final_loss', final_loss, counter)
                     writer.add_scalar('train/angle_diff', angle_diff, counter)
 
-        iou = eval_iou(model, val_loader, args.logdir, epoch)
-        logger.info(f"EVAL[{epoch:>2d}]:    "
-                    # f"Fusion mIOU: {np.array2string(fusion_iou[1:].numpy().mean(), precision=3, floatmode='fixed')}    "
-                    # f"Fusion IOU: {np.array2string(fusion_iou[1:].numpy(), precision=3, floatmode='fixed')}    "
-                    f"mIOU: {np.array2string(iou[1:].numpy().mean(), precision=3, floatmode='fixed')}    "
-                    f"IOU: {np.array2string(iou[1:].numpy(), precision=3, floatmode='fixed')}")
+        if local_rank == 0:
+            iou = eval_iou(model, val_loader, args.logdir, epoch)
+            logger.info(f"EVAL[{epoch:>2d}]:    "
+                        # f"Fusion mIOU: {np.array2string(fusion_iou[1:].numpy().mean(), precision=3, floatmode='fixed')}    "
+                        # f"Fusion IOU: {np.array2string(fusion_iou[1:].numpy(), precision=3, floatmode='fixed')}    "
+                        f"mIOU: {np.array2string(iou[1:].numpy().mean(), precision=3, floatmode='fixed')}    "
+                        f"IOU: {np.array2string(iou[1:].numpy(), precision=3, floatmode='fixed')}")
 
-        write_log(writer, iou, 'eval', counter)
-        # write_log(writer, fusion_iou, 'eval_fusion', counter)
-        model_name = os.path.join(args.logdir, f"model{epoch}.pt")
-        if distributed and args.local_rank == 0:
-            torch.save(model.module.state_dict(), model_name)
-        else:
-            torch.save(model.state_dict(), model_name)
+            write_log(writer, iou, 'eval', counter)
+            # write_log(writer, fusion_iou, 'eval_fusion', counter)
+            model_name = os.path.join(args.logdir, f"model{epoch}.pt")
+            torch.save(model.module.state_dict() if distributed else model.state_dict(), model_name)
+            logger.info(f"{model_name} saved")
 
-        logger.info(f"{model_name} saved")
         model.train()
-
-        sched.step()
 
 
 def seed_torch(seed=666):
@@ -206,7 +206,7 @@ def seed_torch(seed=666):
     torch.cuda.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)  # if you are using multi-GPU.
     # torch.backends.cudnn.deterministic = True
-    print("We use the seed: {}".format(seed))
+    # print("We use the seed: {}".format(seed))
 
 
 if __name__ == '__main__':
@@ -214,7 +214,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='LiDAR2Map training.')
     # logging config
     parser.add_argument('--logdir', type=str, default='./logs/lidar2map')
-    # parser.add_argument('--distributed', action='store_true', default=False)
     parser.add_argument(
         '--launcher',
         choices=['none', 'pytorch', 'slurm', 'mpi'],
@@ -239,7 +238,6 @@ if __name__ == '__main__':
     parser.add_argument("--weight_decay", type=float, default=1e-7)
 
     # finetune config
-    parser.add_argument('--finetune', action='store_true')
     parser.add_argument('--modelf', type=str, default=None)
 
     # data config

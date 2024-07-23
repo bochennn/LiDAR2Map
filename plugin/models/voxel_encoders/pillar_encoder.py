@@ -49,103 +49,103 @@ def convert_relu_to_softplus(model, act):
       convert_relu_to_softplus(child, act)
 
 
-class PointPillar(nn.Module):
-  def __init__(self, data_conf, instance_seg=True, embedded_dim=16, direction_pred=True, direction_dim=36):
-    super(PointPillar, self).__init__()
-    self.xbound = data_conf['xbound']
-    self.ybound = data_conf['ybound']
-    self.zbound = data_conf['zbound']
-    self.embedded_dim = embedded_dim
-    self.pn = PointNet(15, 64)
-    self.block1 = PillarBlock(64, dims=64, num_layers=2, stride=1)
-    self.block2 = PillarBlock(64, dims=128, num_layers=3, stride=2)
-    self.block3 = PillarBlock(128, 256, num_layers=3, stride=2)
-    self.up1 = nn.Sequential(
-      nn.Conv2d(64, 64, 3, padding=1, bias=False),
-      nn.BatchNorm2d(64),
-      nn.ReLU(inplace=True)
-    )
-    self.up2 = nn.Sequential(
-      nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
-      nn.Conv2d(128, 128, 3, stride=1, padding=1, bias=False),
-      nn.BatchNorm2d(128),
-      nn.ReLU(inplace=True)
-    )
-    self.up3 = nn.Sequential(
-      nn.Upsample(scale_factor=4, mode='bilinear', align_corners=True),
-      nn.Conv2d(256, 256, 3, stride=1, padding=1, bias=False),
-      nn.BatchNorm2d(256),
-      nn.ReLU(inplace=True)
-    )
-    convert_relu_to_softplus(self.block1, nn.Hardswish())
-    convert_relu_to_softplus(self.block2, nn.Hardswish())
-    convert_relu_to_softplus(self.block3, nn.Hardswish())
-    convert_relu_to_softplus(self.up1, nn.Hardswish())
-    convert_relu_to_softplus(self.up2, nn.Hardswish())
-    convert_relu_to_softplus(self.up3, nn.Hardswish())
-    # self.dropout_lidar = nn.Dropout2d(p=0.2)
-    self.conv_out = nn.Sequential(
-      nn.Conv2d(448, 256, 3, padding=1, bias=False),
-      nn.BatchNorm2d(256),
-      nn.ReLU(inplace=True),
-      nn.Conv2d(256, 128, 3, padding=1, bias=False),
-      nn.BatchNorm2d(128),
-      nn.ReLU(inplace=True),
-      nn.Conv2d(128, data_conf['num_channels'], 1),
-    )
+# class PointPillar(nn.Module):
+#   def __init__(self, data_conf, instance_seg=True, embedded_dim=16, direction_pred=True, direction_dim=36):
+#     super(PointPillar, self).__init__()
+#     self.xbound = data_conf['xbound']
+#     self.ybound = data_conf['ybound']
+#     self.zbound = data_conf['zbound']
+#     self.embedded_dim = embedded_dim
+#     self.pn = PointNet(15, 64)
+#     self.block1 = PillarBlock(64, dims=64, num_layers=2, stride=1)
+#     self.block2 = PillarBlock(64, dims=128, num_layers=3, stride=2)
+#     self.block3 = PillarBlock(128, 256, num_layers=3, stride=2)
+#     self.up1 = nn.Sequential(
+#       nn.Conv2d(64, 64, 3, padding=1, bias=False),
+#       nn.BatchNorm2d(64),
+#       nn.ReLU(inplace=True)
+#     )
+#     self.up2 = nn.Sequential(
+#       nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
+#       nn.Conv2d(128, 128, 3, stride=1, padding=1, bias=False),
+#       nn.BatchNorm2d(128),
+#       nn.ReLU(inplace=True)
+#     )
+#     self.up3 = nn.Sequential(
+#       nn.Upsample(scale_factor=4, mode='bilinear', align_corners=True),
+#       nn.Conv2d(256, 256, 3, stride=1, padding=1, bias=False),
+#       nn.BatchNorm2d(256),
+#       nn.ReLU(inplace=True)
+#     )
+#     convert_relu_to_softplus(self.block1, nn.Hardswish())
+#     convert_relu_to_softplus(self.block2, nn.Hardswish())
+#     convert_relu_to_softplus(self.block3, nn.Hardswish())
+#     convert_relu_to_softplus(self.up1, nn.Hardswish())
+#     convert_relu_to_softplus(self.up2, nn.Hardswish())
+#     convert_relu_to_softplus(self.up3, nn.Hardswish())
+#     # self.dropout_lidar = nn.Dropout2d(p=0.2)
+#     self.conv_out = nn.Sequential(
+#       nn.Conv2d(448, 256, 3, padding=1, bias=False),
+#       nn.BatchNorm2d(256),
+#       nn.ReLU(inplace=True),
+#       nn.Conv2d(256, 128, 3, padding=1, bias=False),
+#       nn.BatchNorm2d(128),
+#       nn.ReLU(inplace=True),
+#       nn.Conv2d(128, data_conf['num_channels'], 1),
+#     )
 
-    if instance_seg:
-      self.instance_conv_out = nn.Sequential(
-        nn.Conv2d(448, 256, 3, padding=1, bias=False),
-        nn.BatchNorm2d(256),
-        nn.ReLU(inplace=True),
-        nn.Conv2d(256, 128, 3, padding=1, bias=False),
-        nn.BatchNorm2d(128),
-        nn.ReLU(inplace=True),
-        nn.Conv2d(128, embedded_dim, 1),
-      )
-    if direction_pred:
-      self.direction_conv_out = nn.Sequential(
-        nn.Conv2d(448, 256, 3, padding=1, bias=False),
-        nn.BatchNorm2d(256),
-        nn.ReLU(inplace=True),
-        nn.Conv2d(256, 128, 3, padding=1, bias=False),
-        nn.BatchNorm2d(128),
-        nn.ReLU(inplace=True),
-        nn.Conv2d(128, direction_dim+1, 1),
-      )
+#     if instance_seg:
+#       self.instance_conv_out = nn.Sequential(
+#         nn.Conv2d(448, 256, 3, padding=1, bias=False),
+#         nn.BatchNorm2d(256),
+#         nn.ReLU(inplace=True),
+#         nn.Conv2d(256, 128, 3, padding=1, bias=False),
+#         nn.BatchNorm2d(128),
+#         nn.ReLU(inplace=True),
+#         nn.Conv2d(128, embedded_dim, 1),
+#       )
+#     if direction_pred:
+#       self.direction_conv_out = nn.Sequential(
+#         nn.Conv2d(448, 256, 3, padding=1, bias=False),
+#         nn.BatchNorm2d(256),
+#         nn.ReLU(inplace=True),
+#         nn.Conv2d(256, 128, 3, padding=1, bias=False),
+#         nn.BatchNorm2d(128),
+#         nn.ReLU(inplace=True),
+#         nn.Conv2d(128, direction_dim+1, 1),
+#       )
 
-  def forward(self, img, trans, rots, intrins, post_trans, post_rots, lidar_data, lidar_mask, car_trans, yaw_pitch_roll):
-    points_xyz = lidar_data[:, :, :3]
-    points_feature = lidar_data[:, :, 3:]
-    voxels = points_to_voxels(
-      points_xyz, lidar_mask, self.xbound, self.ybound, self.zbound
-    )
-    points_feature = torch.cat(
-      [lidar_data,  # 5
-       torch.unsqueeze(voxels['voxel_point_count'], dim=-1),  # 1
-       voxels['local_points_xyz'],  # 3
-       voxels['point_centroids'],  # 3
-       points_xyz - voxels['voxel_centers'],  # 3
-      ], dim=-1
-    )
-    points_feature = self.pn(points_feature, voxels['points_mask'])
-    voxel_feature = torch_scatter.scatter_mean(
-      points_feature,
-      torch.unsqueeze(voxels['voxel_indices'], dim=1),
-      dim=2,
-      dim_size=voxels['num_voxels'])
-    batch_size = lidar_data.size(0)
-    voxel_feature = voxel_feature.view(batch_size, -1, voxels['grid_size'][0], voxels['grid_size'][1])
-    voxel_feature1 = self.block1(voxel_feature)
-    voxel_feature2 = self.block2(voxel_feature1)
-    voxel_feature3 = self.block3(voxel_feature2)
-    voxel_feature1 = self.up1(voxel_feature1)
-    voxel_feature2 = self.up2(voxel_feature2)
-    voxel_feature3 = self.up3(voxel_feature3)
-    voxel_feature = torch.cat([voxel_feature1, voxel_feature2, voxel_feature3], dim=1)
-    # voxel_feature = self.dropout_lidar(voxel_feature)
-    return self.conv_out(voxel_feature).transpose(3, 2), self.instance_conv_out(voxel_feature).transpose(3, 2), self.direction_conv_out(voxel_feature).transpose(3, 2)
+#   def forward(self, img, trans, rots, intrins, post_trans, post_rots, lidar_data, lidar_mask, car_trans, yaw_pitch_roll):
+#     points_xyz = lidar_data[:, :, :3]
+#     points_feature = lidar_data[:, :, 3:]
+#     voxels = points_to_voxels(
+#       points_xyz, lidar_mask, self.xbound, self.ybound, self.zbound
+#     )
+#     points_feature = torch.cat(
+#       [lidar_data,  # 5
+#        torch.unsqueeze(voxels['voxel_point_count'], dim=-1),  # 1
+#        voxels['local_points_xyz'],  # 3
+#        voxels['point_centroids'],  # 3
+#        points_xyz - voxels['voxel_centers'],  # 3
+#       ], dim=-1
+#     )
+#     points_feature = self.pn(points_feature, voxels['points_mask'])
+#     voxel_feature = torch_scatter.scatter_mean(
+#       points_feature,
+#       torch.unsqueeze(voxels['voxel_indices'], dim=1),
+#       dim=2,
+#       dim_size=voxels['num_voxels'])
+#     batch_size = lidar_data.size(0)
+#     voxel_feature = voxel_feature.view(batch_size, -1, voxels['grid_size'][0], voxels['grid_size'][1])
+#     voxel_feature1 = self.block1(voxel_feature)
+#     voxel_feature2 = self.block2(voxel_feature1)
+#     voxel_feature3 = self.block3(voxel_feature2)
+#     voxel_feature1 = self.up1(voxel_feature1)
+#     voxel_feature2 = self.up2(voxel_feature2)
+#     voxel_feature3 = self.up3(voxel_feature3)
+#     voxel_feature = torch.cat([voxel_feature1, voxel_feature2, voxel_feature3], dim=1)
+#     # voxel_feature = self.dropout_lidar(voxel_feature)
+#     return self.conv_out(voxel_feature).transpose(3, 2), self.instance_conv_out(voxel_feature).transpose(3, 2), self.direction_conv_out(voxel_feature).transpose(3, 2)
 
 
 class PointPillarEncoder(nn.Module):

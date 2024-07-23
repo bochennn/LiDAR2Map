@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .Lovasz_Softmax import Lovasz_softmax
+from .lovasz_softmax import Lovasz_softmax
 
 
 class FocalLoss(nn.Module):
