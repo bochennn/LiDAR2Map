@@ -3,7 +3,9 @@ from .detectors.lidar2map import LiDAR2Map
 # from .camera.lift_splat import LiftSplat
 from .layers import *
 from .necks import *
+from .view_transform import *
 from .voxel_encoders import *
+from .heads import *
 
 
 def get_model(method, data_conf, instance_seg=True, embedded_dim=16, direction_pred=True, angle_class=36):

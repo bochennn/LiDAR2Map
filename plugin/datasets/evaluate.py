@@ -7,7 +7,6 @@ def batch_iou_torch(pd_logits: torch.Tensor, gt_logits: torch.Tensor):
     semantic mask: B, cls, H, W
     cls[0] is background
     """
-    intersects, unions = [], []
     pd_logits = pd_logits.flatten(2).bool()
     gt_logits = gt_logits.flatten(2).bool()
 
@@ -21,7 +20,6 @@ def batch_iou_numpy(pd_logits: np.ndarray, gt_logits: np.ndarray):
     semantic mask: cls, H, W
     cls[0] is background
     """
-    intersects, unions = [], []
     pd_logits = pd_logits.reshape(pd_logits.shape[0], -1).astype(bool)
     gt_logits = gt_logits.reshape(gt_logits.shape[0], -1).astype(bool)
 

@@ -20,17 +20,6 @@ file_client_args = dict(backend='disk')
 
 model = dict(
     type='LiDAR2Map',
-    data_conf=dict(
-        num_channels=4,
-        image_size=(512, 960),
-        xbound=[point_cloud_range[0], point_cloud_range[3], voxel_size[0]],
-        ybound=[point_cloud_range[1], point_cloud_range[4], voxel_size[1]],
-        zbound=[point_cloud_range[2], point_cloud_range[5], voxel_size[2]],
-        dbound=depth_range,
-        thickness=5,
-        angle_class=36,
-        cams=['CAM_FRONT_LEFT', 'CAM_FRONT', 'CAM_FRONT_RIGHT',
-              'CAM_BACK_LEFT', 'CAM_BACK', 'CAM_BACK_RIGHT']),
     # data_preprocessor=dict(
     #     type='Det3DDataPreprocessor',
     #     mean=[123.675, 116.28, 103.53],
@@ -93,6 +82,28 @@ model = dict(
         norm_cfg=dict(type='BN2d', requires_grad=True),
         act_cfg=dict(type='ReLU', inplace=True),
         upsample_cfg=dict(mode='bilinear', align_corners=False)),
+    view_transform=dict(
+        type='LSSViewTransformerV1',
+        in_channels=512,
+        out_channels=128,
+        image_size=(512, 960),
+        xbound=[point_cloud_range[0], point_cloud_range[3], voxel_size[0]],
+        ybound=[point_cloud_range[1], point_cloud_range[4], voxel_size[1]],
+        zbound=[point_cloud_range[2], point_cloud_range[5], voxel_size[2]],
+        dbound=depth_range,
+        downsample=8),
+    pts_fusion_layer=dict(
+        type='PositionGuidedFusion',
+        img_feats_channel=128,
+        pts_feats_channel=128),
+    pts_seg_head=dict(
+        type='BEV_FPD',
+        in_channels=128,
+        out_channels=4),
+    fusion_seg_head=dict(
+        type='BEV_FPD',
+        in_channels=128,
+        out_channels=4)
 )
 
 train_pipeline = [

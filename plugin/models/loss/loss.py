@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -26,7 +27,7 @@ class FocalLoss(nn.Module):
 
 
 class SimpleLoss(torch.nn.Module):
-    def __init__(self, pos_weight):
+    def __init__(self, pos_weight: float = 2.):
         super(SimpleLoss, self).__init__()
         # self.loss_fn = torch.nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([pos_weight]))
         self.wce = torch.nn.CrossEntropyLoss()  # weight=torch.Tensor([1, 1, 20, 1])

@@ -7,14 +7,9 @@ from typing import List
 
 import numpy as np
 import torch
-# import yaml
-# from easydict import EasyDict as edict
-# import torch.nn.functional as F
-# from efficientnet_pytorch import EfficientNet
-# from mmdet3d.models.builder import build_backbone, build_neck
+from mmcv.runner import BaseModule
+from mmdet3d.models.builder import NECKS
 from torch import nn
-
-# from ..utils.base import BEV_FPD, Up
 
 
 def gen_dx_bx(xbound, ybound, zbound):
@@ -25,12 +20,11 @@ def gen_dx_bx(xbound, ybound, zbound):
 
 
 class CamEncode(nn.Module):
-    def __init__(self, D, C, downsample):
+    def __init__(self, in_channels, D, C):
         super(CamEncode, self).__init__()
         self.D = D
         self.C = C
-
-        self.depthnet = nn.Conv2d(512, self.D + self.C, kernel_size=1, padding=0)
+        self.depthnet = nn.Conv2d(in_channels, self.D + self.C, kernel_size=1, padding=0)
 
     def get_depth_dist(self, x, eps=1e-20):
         return x.softmax(dim=1)
@@ -113,36 +107,33 @@ class QuickCumsum(torch.autograd.Function):
         return val, None, None
 
 
-class LiftSplat(nn.Module):
-    def __init__(self, data_conf):
-        super(LiftSplat, self).__init__()
-        self.data_conf = data_conf
+@NECKS.register_module()
+class LSSViewTransformerV1(BaseModule):
+    def __init__(self, in_channels, out_channels, image_size, xbound, ybound, zbound, dbound, downsample):
+        super(LSSViewTransformerV1, self).__init__()
+        self.image_size = image_size
+        self.dbound = dbound
 
-        dx, bx, nx = gen_dx_bx(data_conf['xbound'], data_conf['ybound'], data_conf['zbound'])
+        dx, bx, nx = gen_dx_bx(xbound, ybound, zbound)
         self.dx = nn.Parameter(dx, requires_grad=False)
         self.bx = nn.Parameter(bx, requires_grad=False)
         self.nx = nn.Parameter(nx, requires_grad=False).long()
 
-        self.downsample = 8
+        self.downsample = downsample
 
-        self.camC = 128
+        self.camC = out_channels
         self.frustum = self.create_frustum()
         # D x H/downsample x D/downsample x 3
         self.D, _, _, _ = self.frustum.shape
-        self.camencode = CamEncode(self.D, self.camC, self.downsample)
-
-        # self.bevencode = BEV_FPD(inC=self.camC, outC=data_conf['num_channels'], instance_seg=instance_seg,
-        #                                embedded_dim=embedded_dim, direction_pred=direction_pred,
-        #                                direction_dim=direction_dim + 1)
-
+        self.camencode = CamEncode(in_channels, self.D, self.camC)
         # toggle using QuickCumsum vs. autograd
         self.use_quickcumsum = True
 
     def create_frustum(self):
         # make grid in image plane
-        ogfH, ogfW = self.data_conf['image_size']
+        ogfH, ogfW = self.image_size
         fH, fW = ogfH // self.downsample, ogfW // self.downsample
-        ds = torch.arange(*self.data_conf['dbound'], dtype=torch.float).view(-1, 1, 1).expand(-1, fH, fW)
+        ds = torch.arange(*self.dbound, dtype=torch.float).view(-1, 1, 1).expand(-1, fH, fW)
         D, _, _ = ds.shape
         xs = torch.linspace(0, ogfW - 1, fW, dtype=torch.float).view(1, 1, fW).expand(D, fH, fW)
         ys = torch.linspace(0, ogfH - 1, fH, dtype=torch.float).view(1, fH, 1).expand(D, fH, fW)

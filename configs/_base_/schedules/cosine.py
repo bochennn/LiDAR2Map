@@ -16,7 +16,7 @@ lr_config = dict(
     min_lr_ratio=1e-5)
 
 momentum_config = dict(
-    type='CosineAnnealingMomentum',
+    policy='CosineAnnealing',
     min_momentum=0.85 / 0.95
 )
 

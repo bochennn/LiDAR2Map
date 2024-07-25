@@ -1,10 +1,11 @@
 import torch
 import torch.nn as nn
 
-from efficientnet_pytorch import EfficientNet
+# from efficientnet_pytorch import EfficientNet
 from torchvision.models.resnet import resnet18
 import torch.nn.functional as F
 from torchvision.models.resnet import BasicBlock, conv1x1
+from mmdet3d.models.builder import HEADS
 
 
 class Up(nn.Module):
@@ -47,21 +48,12 @@ class BasicConv2d(nn.Module):
             x = self.relu(x)
         return x
 
-
+@HEADS.register_module()
 class BEV_FPD(nn.Module):
-    def __init__(
-        self,
-        inC,
-        outC,
-        instance_seg=False,
-        embedded_dim=16,
-        direction_pred=False,
-        direction_dim=36
-    ):
+    def __init__(self, in_channels: int, out_channels: int):
         super(BEV_FPD, self).__init__()
         trunk = resnet18(zero_init_residual=True)
-        self.conv1 = nn.Conv2d(inC, 64, kernel_size=7, stride=2, padding=3,
-                               bias=False)
+        self.conv1 = nn.Conv2d(in_channels, 64, kernel_size=7, stride=2, padding=3, bias=False)
         self.bn1 = trunk.bn1
         self.relu = trunk.relu
 
@@ -72,33 +64,33 @@ class BEV_FPD(nn.Module):
         self.layer5 = self._make_layer(BasicBlock, 512, 2, stride=2, dilate=False)
         self.layer6 = self._make_layer(BasicBlock, 512, 2, stride=2, dilate=False)
 
-        self.conv_1 = BasicConv2d(448+512*3, 256, kernel_size=3, padding=1)  # 448+512
+        self.conv_1 = BasicConv2d(448 + 512 * 3, 256, kernel_size=3, padding=1)  # 448 + 512
         self.conv_2 = BasicConv2d(256, 128, kernel_size=3, padding=1)
-        self.semantic_output = nn.Conv2d(128, outC, 1)
+        self.semantic_output = nn.Conv2d(128, out_channels, kernel_size=1)
 
-        self.instance_seg = instance_seg
-        if instance_seg:
-            self.up1_embedded = Up(64 + 256, 256, scale_factor=4)
-            self.up2_embedded = nn.Sequential(
-                nn.Upsample(scale_factor=2, mode='bilinear',
-                            align_corners=True),
-                nn.Conv2d(256, 128, kernel_size=3, padding=1, bias=False),
-                nn.BatchNorm2d(128),
-                nn.ReLU(inplace=True),
-                nn.Conv2d(128, embedded_dim, kernel_size=1, padding=0),
-            )
+        # self.instance_seg = instance_seg
+        # if instance_seg:
+        #     self.up1_embedded = Up(64 + 256, 256, scale_factor=4)
+        #     self.up2_embedded = nn.Sequential(
+        #         nn.Upsample(scale_factor=2, mode='bilinear',
+        #                     align_corners=True),
+        #         nn.Conv2d(256, 128, kernel_size=3, padding=1, bias=False),
+        #         nn.BatchNorm2d(128),
+        #         nn.ReLU(inplace=True),
+        #         nn.Conv2d(128, embedded_dim, kernel_size=1, padding=0),
+        #     )
 
-        self.direction_pred = direction_pred
-        if direction_pred:
-            self.up1_direction = Up(64 + 256, 256, scale_factor=4)
-            self.up2_direction = nn.Sequential(
-                nn.Upsample(scale_factor=2, mode='bilinear',
-                            align_corners=True),
-                nn.Conv2d(256, 128, kernel_size=3, padding=1, bias=False),
-                nn.BatchNorm2d(128),
-                nn.ReLU(inplace=True),
-                nn.Conv2d(128, direction_dim, kernel_size=1, padding=0),
-            )
+        # self.direction_pred = direction_pred
+        # if direction_pred:
+        #     self.up1_direction = Up(64 + 256, 256, scale_factor=4)
+        #     self.up2_direction = nn.Sequential(
+        #         nn.Upsample(scale_factor=2, mode='bilinear',
+        #                     align_corners=True),
+        #         nn.Conv2d(256, 128, kernel_size=3, padding=1, bias=False),
+        #         nn.BatchNorm2d(128),
+        #         nn.ReLU(inplace=True),
+        #         nn.Conv2d(128, direction_dim, kernel_size=1, padding=0),
+        #     )
 
     def _make_layer(self, block: BasicBlock, planes: int, blocks: int,
                     stride: int = 1, dilate: bool = False) -> nn.Sequential:

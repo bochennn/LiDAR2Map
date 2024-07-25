@@ -2,7 +2,7 @@ from typing import Dict, List, Optional
 
 import torch
 from mmcv.runner import force_fp32
-from mmdet3d.models.builder import MODELS
+from mmdet3d.models.builder import MODELS, build_neck
 from mmdet3d.models.detectors.mvx_two_stage import MVXTwoStageDetector
 from torch.nn import functional as F
 
@@ -35,7 +35,7 @@ class BEVFusion(MVXTwoStageDetector):
             pts_bbox_head, img_roi_head, img_rpn_head,
             train_cfg, test_cfg, pretrained, init_cfg
         )
-        self.view_transform = view_transform
+        self.view_transform = build_neck(view_transform)
 
     @torch.no_grad()
     @force_fp32()

@@ -6,11 +6,11 @@ from .tree_filter.modules.tree_filter import MinimumSpanningTree, TreeFilter2D
 from .loss import SimpleLoss
 
 
-def compute_feature_distill_loss(
+def feature_distill_loss(
     features_preds: List[torch.Tensor],
     features_targets: List[torch.Tensor],
-    low_feats: torch.Tensor,
-    weight: float = 0.4):
+    low_feats: torch.Tensor
+):
     """
     features_preds: student feature from lidar backbone
     features_targets: teacher feature from fusion backbone
@@ -41,11 +41,11 @@ def compute_feature_distill_loss(
 
         feature_distill_loss += F.l1_loss(lidar_affinity, fusion_affinity, reduction='mean') / B
 
-    return weight * feature_distill_loss
+    return feature_distill_loss
 
 
-def compute_logit_distill_loss(logits_preds: torch.Tensor, logits_targets: torch.Tensor, weight: float = 1.5):
+def logit_distill_loss(logits_preds: torch.Tensor, logits_targets: torch.Tensor):
     logit_distill_loss = F.kl_div(F.log_softmax(logits_preds, dim=1),
                                     F.softmax(logits_targets.detach(), dim=1),
                                     reduction='none').sum(dim=1).mean()
-    return weight * logit_distill_loss
+    return logit_distill_loss
