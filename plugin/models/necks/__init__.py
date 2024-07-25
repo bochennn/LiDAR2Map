@@ -1,1 +1,1 @@
-from .bevfusion_necks import GeneralizedLSSFPN
+from .lss_fpn import GeneralizedLSSFPN

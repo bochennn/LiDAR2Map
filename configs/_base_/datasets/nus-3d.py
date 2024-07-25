@@ -7,7 +7,7 @@ class_names = [
     'motorcycle', 'pedestrian', 'traffic_cone', 'barrier'
 ]
 dataset_type = 'NuScenesDataset'
-data_root = '/data/sfs_turbo/nuscenes/'
+data_root = 'data/nuscenes/'
 # Input modality for nuScenes dataset, this is consistent with the submission
 # format which requires the information in input_modality.
 input_modality = dict(
@@ -113,18 +113,9 @@ data = dict(
         classes=class_names,
         modality=input_modality,
         test_mode=True,
-        box_type_3d='LiDAR'),
-    test=dict(
-        type=dataset_type,
-        data_root=data_root,
-        ann_file=data_root + 'nuscenes_infos_val.pkl',
-        pipeline=test_pipeline,
-        classes=class_names,
-        modality=input_modality,
-        test_mode=True,
         box_type_3d='LiDAR'))
 # For nuScenes dataset, we usually evaluate the model at the end of training.
 # Since the models are trained by 24 epochs by default, we set evaluation
 # interval to be 24. Please change the interval accordingly if you do not
 # use a default schedule.
-evaluation = dict(interval=24, pipeline=eval_pipeline)
+evaluation = dict(interval=1, pipeline=eval_pipeline)

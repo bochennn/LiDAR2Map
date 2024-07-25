@@ -1,129 +1,19 @@
 
-# import torch
-import numpy as np
+from typing import List, Dict
 
+import numpy as np
 from mmdet3d.datasets.builder import DATASETS
-from mmdet3d.datasets.nuscenes_dataset import NuScenesDataset as _NuScenesDataset
+from mmdet3d.datasets.nuscenes_dataset import \
+    NuScenesDataset as _NuScenesDataset
+
+from .evaluate import batch_iou_numpy
+from .utils import rasterize_map
 
 
 @DATASETS.register_module(force=True)
 class NuScenesDataset(_NuScenesDataset):
-    # def __init__(
-    #     self,
-    #     **kwargs
-    # ):
-        # super(, self).__init__(**kwargs)
-        # patch_h = data_conf['ybound'][1] - data_conf['ybound'][0]
-        # patch_w = data_conf['xbound'][1] - data_conf['xbound'][0]
-        # canvas_h = int(patch_h / data_conf['ybound'][2])
-        # canvas_w = int(patch_w / data_conf['xbound'][2])
-        # self.is_train = is_train
-        # self.data_conf = data_conf
-        # self.patch_size = (patch_h, patch_w)
-        # self.canvas_size = (canvas_h, canvas_w)
-        # self.nusc = nusc
-        # self.vector_map = VectorizedLocalMap(dataroot, patch_size=self.patch_size, canvas_size=self.canvas_size)
-        # self.scenes = self.get_scenes(version, is_train)
-        # self.samples = self.get_samples()
-        # self.thickness = data_conf['thickness']
-        # self.angle_class = data_conf['angle_class']
 
-    # def __len__(self):
-    #     return len(self.samples)
-
-    # def get_scenes(self, version, is_train):
-    #     # filter by scene split
-    #     split = {
-    #         'v1.0-trainval': {True: 'train', False: 'val'},
-    #         'v1.0-mini': {True: 'mini_train', False: 'mini_val'},
-    #     }[version][is_train]
-
-    #     return create_splits_scenes()[split]
-
-    # def get_samples(self):
-    #     samples = [samp for samp in self.nusc.sample]
-
-    #     # remove samples that aren't in this split
-    #     samples = [samp for samp in samples if
-    #                self.nusc.get('scene', samp['scene_token'])['name'] in self.scenes]
-
-    #     # sort by scene, timestamp (only to make chronological viz easier)
-    #     samples.sort(key=lambda x: (x['scene_token'], x['timestamp']))
-
-    #     return samples
-
-    # def get_lidar(self, rec):
-    #     lidar_data = get_lidar_data(self.nusc, rec, nsweeps=3, min_distance=2.2)
-    #     lidar_data = lidar_data.transpose(1, 0)
-    #     num_points = lidar_data.shape[0]
-    #     lidar_data = pad_or_trim_to_np(lidar_data, [81920, 5]).astype('float32')      # 81920
-    #     lidar_mask = np.ones(81920).astype('float32')
-    #     lidar_mask[num_points:] *= 0.0
-    #     return lidar_data, lidar_mask
-
-    # def get_ego_pose(self, rec):
-    #     sample_data_record = self.nusc.get('sample_data', rec['data']['LIDAR_TOP'])
-    #     ego_pose = self.nusc.get('ego_pose', sample_data_record['ego_pose_token'])
-    #     car_trans = ego_pose['translation']
-    #     pos_rotation = Quaternion(ego_pose['rotation'])
-    #     yaw_pitch_roll = pos_rotation.yaw_pitch_roll
-    #     return torch.tensor(car_trans), torch.tensor(yaw_pitch_roll)
-
-    # def sample_augmentation(self):
-    #     fH, fW = self.data_conf['image_size']
-    #     resize = (fW / IMG_ORIGIN_W, fH / IMG_ORIGIN_H)
-    #     resize_dims = (fW, fH)
-    #     return resize, resize_dims
-
-    # def get_semantic_map(self, rec):
-    #     vectors = self.get_vectors(rec)
-    #     instance_masks, forward_masks, backward_masks = preprocess_map(vectors, self.patch_size, self.canvas_size, NUM_CLASSES, self.thickness, self.angle_class)
-    #     semantic_masks = instance_masks != 0
-    #     semantic_masks = torch.cat([(~torch.any(semantic_masks, axis=0)).unsqueeze(0), semantic_masks])
-    #     instance_masks = instance_masks.sum(0)
-    #     forward_oh_masks = label_onehot_encoding(forward_masks, self.angle_class+1)
-    #     backward_oh_masks = label_onehot_encoding(backward_masks, self.angle_class+1)
-    #     direction_masks = forward_oh_masks + backward_oh_masks
-    #     direction_masks = direction_masks / direction_masks.sum(0)
-
-    #     return semantic_masks, instance_masks, forward_masks, backward_masks, direction_masks
-
-    # def get_imgs(self, rec):
-    #     imgs = []
-    #     trans = []
-    #     rots = []
-    #     intrins = []
-    #     post_trans = []
-    #     post_rots = []
-
-    #     for cam in self.data_conf.cams:
-    #         samp = self.nusc.get('sample_data', rec['data'][cam])
-    #         imgname = os.path.join(self.nusc.dataroot, samp['filename'])
-    #         img = Image.open(imgname)
-
-    #         resize, resize_dims = self.sample_augmentation()
-    #         img, post_rot, post_tran = img_transform(img, resize, resize_dims)
-    #         # resize, resize_dims, crop, flip, rotate = self.sample_augmentation()
-    #         # img, post_rot, post_tran = img_transform(img, resize, resize_dims, crop, flip, rotate)
-
-    #         img = normalize_img(img)
-    #         post_trans.append(post_tran)
-    #         post_rots.append(post_rot)
-    #         imgs.append(img)
-
-    #         sens = self.nusc.get('calibrated_sensor', samp['calibrated_sensor_token'])
-    #         trans.append(torch.Tensor(sens['translation']))
-    #         rots.append(torch.Tensor(Quaternion(sens['rotation']).rotation_matrix))
-    #         intrins.append(torch.Tensor(sens['camera_intrinsic']))
-    #     return torch.stack(imgs), torch.stack(trans), torch.stack(rots), torch.stack(intrins), torch.stack(post_trans), torch.stack(post_rots)
-
-    # def get_vectors(self, rec):
-    #     location = self.nusc.get('log', self.nusc.get('scene', rec['scene_token'])['log_token'])['location']
-    #     ego_pose = self.nusc.get('ego_pose', self.nusc.get('sample_data', rec['data']['LIDAR_TOP'])['ego_pose_token'])
-    #     vectors = self.vector_map.gen_vectorized_samples(location, ego_pose['translation'], ego_pose['rotation'])
-    #     return vectors
-
-    def prepare_train_data(self, index):
+    def prepare_train_data(self, index: int) -> Dict:
         """Training data preparation.
 
         Args:
@@ -137,24 +27,26 @@ class NuScenesDataset(_NuScenesDataset):
             return None
         self.pre_pipeline(input_dict)
         example = self.pipeline(input_dict)
-        # if self.filter_empty_gt and \
-        #         (example is None or
-        #             ~(example['gt_labels_3d']._data != -1).any()):
-        #     return None
         return example
 
-    # def __getitem__(self, idx):
-    #     rec = self.samples[idx]
-    #     imgs, trans, rots, intrins, post_trans, post_rots = self.get_imgs(rec)
-    #     lidar_data, lidar_mask = self.get_lidar(rec)
-    #     car_trans, yaw_pitch_roll = self.get_ego_pose(rec)
-    #     semantic_masks, instance_masks, _, _, direction_masks = self.get_semantic_map(rec)
-    #     return imgs, trans, rots, intrins, post_trans, post_rots, lidar_data, lidar_mask, car_trans, yaw_pitch_roll, semantic_masks, instance_masks, direction_masks
+    def get_ann_info(self, index: int) -> Dict:
+        info = self.data_infos[index]
+        instance_masks = rasterize_map(info['lane_polygons'],
+                                       (30, 60),
+                                       (200, 400),
+                                       lane_types=['divider', 'ped_crossing', 'boundary'],
+                                       thickness=5)
+        semantic_masks = np.vstack([
+            ~np.any(instance_masks, axis=0, keepdims=True), instance_masks != 0])
 
-    def get_data_info(self, index):
+        anns_results = dict(
+            gt_semantic_seg=semantic_masks
+        )
+        return anns_results
+
+    def get_data_info(self, index: int) -> Dict:
 
         info = self.data_infos[index]
-        # standard protocol modified from SECOND.Pytorch
         input_dict = dict(
             sample_idx=info['token'],
             pts_filename=info['lidar_path'],
@@ -164,7 +56,6 @@ class NuScenesDataset(_NuScenesDataset):
 
         if self.modality['use_camera']:
             image_paths = []
-            # lidar2img_rts = []
             cam2img = []
             lidar2cam_rts = []
             for cam_type, cam_info in info['cams'].items():
@@ -176,18 +67,16 @@ class NuScenesDataset(_NuScenesDataset):
                 lidar2cam_rt = np.eye(4)
                 lidar2cam_rt[:3, :3] = lidar2cam_r.T
                 lidar2cam_rt[3, :3] = -lidar2cam_t
-                intrinsic = cam_info['camera_intrinsics']
+                intrinsic = cam_info['cam_intrinsic']
                 viewpad = np.eye(4)
                 viewpad[:intrinsic.shape[0], :intrinsic.shape[1]] = intrinsic
                 # lidar2img_rt = (viewpad @ lidar2cam_rt.T)
-                # lidar2img_rts.append(lidar2img_rt)
                 cam2img.append(intrinsic)
                 lidar2cam_rts.append(lidar2cam_rt)
 
             input_dict.update(
                 dict(
                     img_filename=image_paths,
-                    # lidar2img=lidar2img_rts,
                     cam2img=np.stack(cam2img),
                     lidar2cam=np.stack(lidar2cam_rts)
                 ))
@@ -197,3 +86,32 @@ class NuScenesDataset(_NuScenesDataset):
             input_dict['ann_info'] = annos
 
         return input_dict
+
+    def evaluate(self, results: List[Dict], logger=None, **kwargs):
+
+        assert isinstance(results, list), 'results must be a list'
+        assert len(results) == len(self), (
+            'The length of results is not equal to the dataset len: {} != {}'.
+            format(len(results), len(self)))
+
+        pts_seg_iou, fusion_seg_iou = [], []
+        for idx, single_res in enumerate(results):
+            anno_info = self.get_ann_info(idx)
+            gt_semantic_seg = anno_info['gt_semantic_seg']
+
+            single_res.update(gt_semantic_seg=gt_semantic_seg,
+                              pts_semantic_seg=single_res['pts_semantic_seg'].cpu().numpy())
+            pts_seg_iou.append(batch_iou_numpy(single_res['pts_semantic_seg'], gt_semantic_seg))
+
+            # if 'fusion_semantic_seg' in single_res:
+            #     fusion_seg_iou.append(batch_iou_numpy(single_res['fusion_semantic_seg'], gt_semantic_seg))
+
+        res = dict()
+        for idx, cls_iou in enumerate(np.stack(pts_seg_iou).mean(axis=0)):
+            res[f'pts_seg_iou_cls_{idx}'] = cls_iou
+
+        # if len(fusion_seg_iou) > 0:
+        #     for idx, cls_iou in enumerate(fusion_seg_iou):
+        #         res[f'fusion_seg_iou_cls_{idx}'] = cls_iou
+
+        return res

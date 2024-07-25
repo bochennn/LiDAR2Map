@@ -1,1 +1,1 @@
-from .pillar_encoder import PointPillarEncoder
+from .pillar_encoder import PointPillarEncoder, DynamicPillarFeatureNet

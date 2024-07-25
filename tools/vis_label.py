@@ -35,7 +35,7 @@ def vis_label(dataroot, version):
     # if not os.path.exists(gt_path):
     #     os.mkdir(gt_path)
 
-    car_img = Image.open('../fig/car.png')
+    car_img = Image.open('fig/car.png')
     for idx in tqdm.tqdm(range(len(dataset))):
         rec = dataset.samples[idx]
         # imgs, trans, rots, intrins, post_trans, post_rots = dataset.get_imgs(rec)
@@ -44,6 +44,10 @@ def vis_label(dataroot, version):
         imgs, trans, rots, intrins, post_trans, post_rots, \
         lidar_data, lidar_mask, car_trans, yaw_pitch_roll, \
         semantic_masks, instance_masks, direction_masks = dataset[idx]
+
+        print(semantic_masks)
+        print(semantic_masks.shape)
+        print(xx)
 
         # lidar_top_path = dataset.nusc.get_sample_data_path(rec['data']['LIDAR_TOP'])
         H, W = instance_masks.shape

@@ -28,11 +28,11 @@ class FocalLoss(nn.Module):
 class SimpleLoss(torch.nn.Module):
     def __init__(self, pos_weight):
         super(SimpleLoss, self).__init__()
-        self.loss_fn = torch.nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([pos_weight]))
+        # self.loss_fn = torch.nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([pos_weight]))
         self.wce = torch.nn.CrossEntropyLoss()  # weight=torch.Tensor([1, 1, 20, 1])
         self.ls = Lovasz_softmax(ignore=0)
 
-    def forward(self, ypred, ytgt):
+    def forward(self, ypred: torch.Tensor, ytgt: torch.Tensor):
         sem_label = ytgt.max(1)[1]
         loss_wce = self.wce(ypred, sem_label)
         ypred = F.softmax(ypred, dim=1)

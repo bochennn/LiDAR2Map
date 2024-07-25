@@ -3,29 +3,24 @@ Copyright (C) 2020 NVIDIA Corporation.  All rights reserved.
 Licensed under the NVIDIA Source Code License. See LICENSE at https://github.com/nv-tlabs/lift-splat-shoot.
 Authors: Jonah Philion and Sanja Fidler
 """
+from typing import List
 
+import numpy as np
 import torch
-from torch import nn
-from easydict import EasyDict as edict
-# import numpy as np
+# import yaml
+# from easydict import EasyDict as edict
 # import torch.nn.functional as F
 # from efficientnet_pytorch import EfficientNet
+# from mmdet3d.models.builder import build_backbone, build_neck
+from torch import nn
 
-from ..utils.base import Up, BEV_FPD
-
-
-from mmdet3d.models.builder import (
-    build_backbone,
-    build_neck,
-)
-
-import yaml
+# from ..utils.base import BEV_FPD, Up
 
 
 def gen_dx_bx(xbound, ybound, zbound):
-    dx = torch.Tensor([row[2] for row in [xbound, ybound, zbound]])
-    bx = torch.Tensor([row[0] + row[2] / 2.0 for row in [xbound, ybound, zbound]])
-    nx = torch.LongTensor([(row[1] - row[0]) / row[2] for row in [xbound, ybound, zbound]])
+    dx = torch.FloatTensor([row[2] for row in [xbound, ybound, zbound]])
+    bx = torch.FloatTensor([row[0] + row[2] / 2.0 for row in [xbound, ybound, zbound]])
+    nx = torch.FloatTensor([(row[1] - row[0]) // row[2] for row in [xbound, ybound, zbound]])
     return dx, bx, nx
 
 
@@ -35,19 +30,6 @@ class CamEncode(nn.Module):
         self.D = D
         self.C = C
 
-        # self.trunk = EfficientNet.from_pretrained("efficientnet-b0")
-        #
-        f = open('plugin/models/fusion/bevfusion/camera-bev256d2.yaml', 'r')
-        cfg = edict(yaml.safe_load(f))
-        encoders = cfg.model.encoders
-        self.encoders = nn.ModuleDict(
-            {
-                "backbone": build_backbone(encoders.camera.backbone),
-                "neck": build_neck(encoders.camera.neck),
-            }
-        )
-        self.encoders['backbone'].init_weights()
-        self.up1 = Up(320+112, 512)  # 608
         self.depthnet = nn.Conv2d(512, self.D + self.C, kernel_size=1, padding=0)
 
     def get_depth_dist(self, x, eps=1e-20):
@@ -55,13 +37,6 @@ class CamEncode(nn.Module):
 
     def get_depth_feat(self, x):
         # x = self.get_eff_depth(x)
-        # bevfusion
-        x = self.encoders.backbone(x)
-        x = self.encoders.neck(x)
-        #
-        if not isinstance(x, torch.Tensor):
-            x = x[0]
-
         # Depth
         x = self.depthnet(x)
 
@@ -141,20 +116,20 @@ class QuickCumsum(torch.autograd.Function):
 class LiftSplat(nn.Module):
     def __init__(self, data_conf):
         super(LiftSplat, self).__init__()
-        # self.data_conf = data_conf
+        self.data_conf = data_conf
 
         dx, bx, nx = gen_dx_bx(data_conf['xbound'], data_conf['ybound'], data_conf['zbound'])
         self.dx = nn.Parameter(dx, requires_grad=False)
         self.bx = nn.Parameter(bx, requires_grad=False)
-        self.nx = nn.Parameter(nx, requires_grad=False)
+        self.nx = nn.Parameter(nx, requires_grad=False).long()
 
-        # self.downsample = 8  # 8
+        self.downsample = 8
 
-        # self.camC = 128
-        # self.frustum = self.create_frustum()
+        self.camC = 128
+        self.frustum = self.create_frustum()
         # D x H/downsample x D/downsample x 3
-        # self.D, _, _, _ = self.frustum.shape
-        # self.camencode = CamEncode(self.D, self.camC, self.downsample)
+        self.D, _, _, _ = self.frustum.shape
+        self.camencode = CamEncode(self.D, self.camC, self.downsample)
 
         # self.bevencode = BEV_FPD(inC=self.camC, outC=data_conf['num_channels'], instance_seg=instance_seg,
         #                                embedded_dim=embedded_dim, direction_pred=direction_pred,
@@ -197,18 +172,6 @@ class LiftSplat(nn.Module):
 
         return points
 
-    def get_cam_feats(self, x):
-        """Return B x N x D x H/downsample x W/downsample x C
-        """
-        B, N, C, imH, imW = x.shape
-
-        # x = x.view(B*N, C, imH, imW)
-        # x = self.camencode(x)
-        x = x.view(B, N, self.camC, self.D, imH // self.downsample, imW // self.downsample)
-        x = x.permute(0, 1, 3, 4, 5, 2)
-
-        return x
-
     def voxel_pooling(self, geom_feats, x):
         B, N, D, H, W, C = x.shape
         Nprime = B*N*D*H*W
@@ -218,7 +181,7 @@ class LiftSplat(nn.Module):
 
         # flatten indices
         # B x N x D x H/downsample x W/downsample x 3
-        geom_feats = ((geom_feats - (self.bx - self.dx/2.)) / self.dx).long()
+        geom_feats = ((geom_feats - (self.bx - self.dx / 2.)) / self.dx).long()
         geom_feats = geom_feats.view(Nprime, 3)
         batch_ix = torch.cat([torch.full([Nprime//B, 1], ix, device=x.device, dtype=torch.long) for ix in range(B)])
         geom_feats = torch.cat((geom_feats, batch_ix), 1)  # x, y, z, b
@@ -253,22 +216,25 @@ class LiftSplat(nn.Module):
 
         return final
 
-    def get_voxels(self, x, rots, trans, intrins, post_rots, post_trans):
-        # B x N x D x H/downsample x W/downsample x 3: (x,y,z) locations (in the ego frame)
+    def _convert_metas(self, img: torch.Tensor, img_metas: List):
+        """ """
+        trans = img.new_tensor(np.stack([m['lidar2cam'][:, :3, 3] for m in img_metas]))
+        rots = img.new_tensor(np.stack([m['lidar2cam'][:, :3, :3] for m in img_metas]))
+        intrins = img.new_tensor(np.stack([m['cam2img'] for m in img_metas]))
+        post_trans = img.new_tensor(np.stack([m['img_aug_matrix'][:, :3, 3] for m in img_metas]))
+        post_rots = img.new_tensor(np.stack([m['img_aug_matrix'][:, :3, :3] for m in img_metas]))
+        return rots, trans, intrins, post_rots, post_trans
+
+    def forward(self, lvl_img_feats: List[torch.Tensor], img_metas: List):
+        img_feats = lvl_img_feats[0]
+
+        rots, trans, intrins, post_rots, post_trans = self._convert_metas(img_feats, img_metas)
         geom = self.get_geometry(rots, trans, intrins, post_rots, post_trans)
-        # B x N x D x H/downsample x W/downsample x C: cam feats
-        x = self.get_cam_feats(x)
 
-        x = self.voxel_pooling(geom, x)
+        B, N, _, _ = intrins.shape
+        img_feats = self.camencode(img_feats) # 6, 128, 118, 64, 120
 
-        return x
-
-    def forward(self, img, trans, rots, intrins, post_trans, post_rots):
-        camera_feature = self.get_voxels(img, rots, trans, intrins, post_rots, post_trans)
-        # if obtain_bev_feat:
-        return camera_feature
-        # else:
-        #     semantic, embedding, direction, _ = self.bevencode(camera_feature)
-        #     return semantic, embedding, direction
-
+        img_feats = img_feats.unflatten(0, (B, N)).permute(0, 1, 3, 4, 5, 2)
+        bev_feats = self.voxel_pooling(geom, img_feats)
+        return bev_feats
 

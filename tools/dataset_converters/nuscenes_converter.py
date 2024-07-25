@@ -1,18 +1,18 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 import os
 from collections import OrderedDict
-from os import path as osp
+from pathlib import Path
 from typing import List, Tuple, Union
 
 import mmcv
 import numpy as np
+from local_map.nuscenes_map import VectorizedLocalMap
+from mmdet3d.core.bbox import points_cam2img
+from mmdet3d.datasets import NuScenesDataset
 from nuscenes.nuscenes import NuScenes
 from nuscenes.utils.geometry_utils import view_points
 from pyquaternion import Quaternion
 from shapely.geometry import MultiPoint, box
-
-from mmdet3d.core.bbox import points_cam2img
-from mmdet3d.datasets import NuScenesDataset
 
 nus_categories = ('car', 'truck', 'trailer', 'bus', 'construction_vehicle',
                   'bicycle', 'motorcycle', 'pedestrian', 'traffic_cone',
@@ -24,10 +24,11 @@ nus_attributes = ('cycle.with_rider', 'cycle.without_rider',
                   'vehicle.parked', 'vehicle.stopped', 'None')
 
 
-def create_nuscenes_infos(root_path,
-                          info_prefix,
-                          version='v1.0-trainval',
-                          max_sweeps=10):
+def create_nuscenes_infos(root_path: Path,
+                          out_dir: Path,
+                          info_prefix: str,
+                          version: str = 'v1.0-trainval',
+                          max_sweeps: int = 10):
     """Create info file of nuscene dataset.
 
     Given the raw data, generate its related info file in pkl format.
@@ -78,27 +79,30 @@ def create_nuscenes_infos(root_path,
     else:
         print('train scene: {}, val scene: {}'.format(
             len(train_scenes), len(val_scenes)))
+
+    vector_map = VectorizedLocalMap(root_path, patch_size=(108, 108))
+
     train_nusc_infos, val_nusc_infos = _fill_trainval_infos(
-        nusc, train_scenes, val_scenes, test, max_sweeps=max_sweeps)
+        nusc, train_scenes, val_scenes, test, max_sweeps, vector_map)
 
     metadata = dict(version=version)
     if test:
         print('test sample: {}'.format(len(train_nusc_infos)))
         data = dict(infos=train_nusc_infos, metadata=metadata)
-        info_path = osp.join(root_path,
-                             '{}_infos_test.pkl'.format(info_prefix))
-        mmcv.dump(data, info_path)
+        # info_path = osp.join(out_path,
+        #                      '{}_infos_test.pkl'.format())
+        mmcv.dump(data, out_dir / f'{info_prefix}_infos_test.pkl')
     else:
         print('train sample: {}, val sample: {}'.format(
             len(train_nusc_infos), len(val_nusc_infos)))
         data = dict(infos=train_nusc_infos, metadata=metadata)
-        info_path = osp.join(root_path,
-                             '{}_infos_train.pkl'.format(info_prefix))
-        mmcv.dump(data, info_path)
+        # info_path = osp.join(out_path,
+        #                      '{}_infos_train.pkl'.format(info_prefix))
+        mmcv.dump(data, out_dir / f'{info_prefix}_infos_train.pkl')
         data['infos'] = val_nusc_infos
-        info_val_path = osp.join(root_path,
-                                 '{}_infos_val.pkl'.format(info_prefix))
-        mmcv.dump(data, info_val_path)
+        # info_val_path = osp.join(out_path,
+        #                          '{}_infos_val.pkl'.format(info_prefix))
+        mmcv.dump(data, out_dir / f'{info_prefix}_infos_val.pkl')
 
 
 def get_available_scenes(nusc):
@@ -142,11 +146,12 @@ def get_available_scenes(nusc):
     return available_scenes
 
 
-def _fill_trainval_infos(nusc,
+def _fill_trainval_infos(nusc: NuScenes,
                          train_scenes,
                          val_scenes,
                          test=False,
-                         max_sweeps=10):
+                         max_sweeps=10,
+                         vector_map: VectorizedLocalMap = None):
     """Generate the train/val infos from the raw data.
 
     Args:
@@ -164,7 +169,7 @@ def _fill_trainval_infos(nusc,
     train_nusc_infos = []
     val_nusc_infos = []
 
-    for sample in mmcv.track_iter_progress(nusc.sample):
+    for sample in mmcv.track_iter_progress(nusc.sample[:80]):
         lidar_token = sample['data']['LIDAR_TOP']
         sd_rec = nusc.get('sample_data', sample['data']['LIDAR_TOP'])
         cs_record = nusc.get('calibrated_sensor',
@@ -264,6 +269,11 @@ def _fill_trainval_infos(nusc,
             info['num_radar_pts'] = np.array(
                 [a['num_radar_pts'] for a in annotations])
             info['valid_flag'] = valid_flag
+
+            location = nusc.get('log', nusc.get('scene', 
+                sample['scene_token'])['log_token'])['location']
+            info['lane_polygons'] = vector_map.gen_vectorized_samples(
+                location, pose_record['translation'], pose_record['rotation'])
 
         if sample['scene_token'] in train_scenes:
             train_nusc_infos.append(info)

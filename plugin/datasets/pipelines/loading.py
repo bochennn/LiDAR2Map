@@ -5,10 +5,10 @@ from mmdet3d.datasets.pipelines.loading import \
 
 @PIPELINES.register_module(force=True)
 class LoadAnnotations3D(_LoadAnnotations3D):
-    def __init__(self, **kwargs):
-        super(LoadAnnotations3D, self).__init__(**kwargs)
 
-    # def __call__(self, results):
-    #     print(xx)
+    def _load_semantic_seg(self, results):
+        gt_semantic_seg = results['ann_info']['gt_semantic_seg']
 
-    #     return
+        results['gt_semantic_seg'] = gt_semantic_seg
+        results['seg_fields'].append('gt_semantic_seg')
+        return results

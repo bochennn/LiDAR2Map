@@ -24,31 +24,35 @@ class ConvFuser(nn.Sequential):
 
 @MODELS.register_module()
 class PositionGuidedFusion(nn.Module):
-    def __init__(self, cam_channel, lidar_channel):
+    def __init__(
+        self,
+        img_feats_channel: int,
+        pts_feats_channel: int
+    ):
         super(PositionGuidedFusion, self).__init__()
         self.fuse_posconv = nn.Sequential(
-            nn.Conv2d(cam_channel + 2, cam_channel,
+            nn.Conv2d(img_feats_channel + 2, img_feats_channel,
                       kernel_size=3, padding=1, stride=1),
             nn.LeakyReLU(),
-            nn.BatchNorm2d(cam_channel)
+            nn.BatchNorm2d(img_feats_channel)
         )
 
         self.fuse_conv = nn.Sequential(
-            nn.Conv2d(cam_channel+lidar_channel, cam_channel,
+            nn.Conv2d(img_feats_channel + pts_feats_channel, img_feats_channel,
                       kernel_size=3, padding=1, stride=1),
             nn.LeakyReLU(),
-            nn.BatchNorm2d(cam_channel)
+            nn.BatchNorm2d(img_feats_channel)
         )
 
         self.attention = nn.Sequential(
             nn.AdaptiveAvgPool2d(1),
-            nn.Conv2d(cam_channel, cam_channel,
+            nn.Conv2d(img_feats_channel, img_feats_channel,
                       kernel_size=1, padding=0, stride=1),
-            nn.BatchNorm2d(cam_channel),
+            nn.LayerNorm([img_feats_channel, 1, 1]),
             nn.ReLU(inplace=True),
-            nn.Conv2d(cam_channel, cam_channel,
+            nn.Conv2d(img_feats_channel, img_feats_channel,
                       kernel_size=1, padding=0, stride=1),
-            nn.BatchNorm2d(cam_channel),
+            nn.LayerNorm([img_feats_channel, 1, 1]),
             nn.Sigmoid()
         )
 
@@ -67,6 +71,6 @@ class PositionGuidedFusion(nn.Module):
 
         fuse_out = self.fuse_posconv(torch.cat((fuse_out, coord_feat), dim=1))
         attention_map = self.attention(fuse_out)
-        out = fuse_out*attention_map + fea_cam
+        out = fuse_out * attention_map + fea_cam
 
         return out

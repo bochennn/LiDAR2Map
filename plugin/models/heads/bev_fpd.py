@@ -29,41 +29,6 @@ class Up(nn.Module):
         return self.conv(x1)
 
 
-class CamEncode(nn.Module):
-    def __init__(self, C):
-        super(CamEncode, self).__init__()
-        self.C = C
-
-        self.trunk = EfficientNet.from_pretrained("efficientnet-b0")
-        self.up1 = Up(320+112, self.C)
-
-    def get_eff_depth(self, x):
-        # adapted from https://github.com/lukemelas/EfficientNet-PyTorch/blob/master/efficientnet_pytorch/model.py#L231
-        endpoints = dict()
-
-        # Stem
-        x = self.trunk._swish(self.trunk._bn0(self.trunk._conv_stem(x)))
-        prev_x = x
-
-        # Blocks
-        for idx, block in enumerate(self.trunk._blocks):
-            drop_connect_rate = self.trunk._global_params.drop_connect_rate
-            if drop_connect_rate:
-                drop_connect_rate *= float(idx) / len(self.trunk._blocks)  # scale drop connect_rate
-            x = block(x, drop_connect_rate=drop_connect_rate)
-            if prev_x.size(2) > x.size(2):
-                endpoints['reduction_{}'.format(len(endpoints)+1)] = prev_x
-            prev_x = x
-
-        # Head
-        endpoints['reduction_{}'.format(len(endpoints)+1)] = x
-        x = self.up1(endpoints['reduction_5'], endpoints['reduction_4'])
-        return x
-
-    def forward(self, x):
-        return self.get_eff_depth(x)
-
-
 class BasicConv2d(nn.Module):
     def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1, relu=True):
         super(BasicConv2d, self).__init__()
@@ -84,7 +49,15 @@ class BasicConv2d(nn.Module):
 
 
 class BEV_FPD(nn.Module):
-    def __init__(self, inC, outC, instance_seg=True, embedded_dim=16, direction_pred=True, direction_dim=37):
+    def __init__(
+        self,
+        inC,
+        outC,
+        instance_seg=False,
+        embedded_dim=16,
+        direction_pred=False,
+        direction_dim=36
+    ):
         super(BEV_FPD, self).__init__()
         trunk = resnet18(zero_init_residual=True)
         self.conv1 = nn.Conv2d(inC, 64, kernel_size=7, stride=2, padding=3,
@@ -185,23 +158,22 @@ class BEV_FPD(nn.Module):
         res_7 = F.interpolate(x7, size=x.size()[2:], mode='bilinear', align_corners=True)
 
         res = [res_2, res_3, res_4, res_5, res_6, res_7]
-        # res = [res_2, res_3, res_4, res_5]
         out = torch.cat(res, dim=1)
         out = self.conv_1(out)
         out = self.conv_2(out)
         out = self.semantic_output(out)
 
-        if self.instance_seg:
-            x_embedded = self.up1_embedded(x2, x1)
-            x_embedded = self.up2_embedded(x_embedded)
-        else:
-            x_embedded = None
+        # if self.instance_seg:
+        #     x_embedded = self.up1_embedded(x2, x1)
+        #     x_embedded = self.up2_embedded(x_embedded)
+        # else:
+        #     x_embedded = None
 
-        if self.direction_pred:
-            x_direction = self.up1_direction(x2, x1)
-            x_direction = self.up2_direction(x_direction)
-        else:
-            x_direction = None
+        # if self.direction_pred:
+        #     x_direction = self.up1_direction(x2, x1)
+        #     x_direction = self.up2_direction(x_direction)
+        # else:
+        #     x_direction = None
 
-        return out, x_embedded, x_direction, feature_list
+        return out, feature_list
 

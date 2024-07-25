@@ -3,6 +3,7 @@ import torch
 import torch.nn.functional as F
 
 from .tree_filter.modules.tree_filter import MinimumSpanningTree, TreeFilter2D
+from .loss import SimpleLoss
 
 
 def compute_feature_distill_loss(

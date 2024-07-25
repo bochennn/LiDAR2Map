@@ -3,14 +3,13 @@ _base_ = [
     '../_base_/datasets/nus-3d.py'
 ]
 custom_imports = dict(
-    imports=['plugin.models.detectors.lidar2map'], allow_failed_imports=False)
+    imports=['plugin.models.detectors.lidar2map'],
+    allow_failed_imports=False)
 
-point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
-voxel_size = [0.2, 0.2, 8]
+point_cloud_range = [-30.0, -15.0, -5.0, 30.0, 15.0, 3.0]
+voxel_size = [0.15, 0.15, 8]
+depth_range = [1.0, 30.0, 0.5]
 
-class_names = []
-
-data_root = '/data/sfs_turbo/nuscenes/'
 input_modality = dict(
     use_lidar=True,
     use_camera=True,
@@ -22,12 +21,12 @@ file_client_args = dict(backend='disk')
 model = dict(
     type='LiDAR2Map',
     data_conf=dict(
-        num_channels=2,
+        num_channels=4,
         image_size=(512, 960),
-        xbound=[-30.0, 30.0, 0.15],
-        ybound=[-15.0, 15.0, 0.15],
-        zbound=[-10.0, 10.0, 20.0],
-        dbound=[1.0, 60.0, 0.5],
+        xbound=[point_cloud_range[0], point_cloud_range[3], voxel_size[0]],
+        ybound=[point_cloud_range[1], point_cloud_range[4], voxel_size[1]],
+        zbound=[point_cloud_range[2], point_cloud_range[5], voxel_size[2]],
+        dbound=depth_range,
         thickness=5,
         angle_class=36,
         cams=['CAM_FRONT_LEFT', 'CAM_FRONT', 'CAM_FRONT_RIGHT',
@@ -48,11 +47,19 @@ model = dict(
         voxel_size=voxel_size,
         point_cloud_range=point_cloud_range),
     pts_middle_encoder=dict(
-        type='PointPillarsScatter', in_channels=64, output_shape=[496, 432]),
+        type='PointPillarsScatter', in_channels=64, output_shape=[200, 400]),
+    pts_backbone=dict(
+        type='SECOND',
+        in_channels=64,
+        out_channels=[64, 128],
+        layer_nums=[5, 5],
+        layer_strides=[1, 2],
+        norm_cfg=dict(type='BN', eps=0.001, momentum=0.01),
+        conv_cfg=dict(type='Conv2d', bias=False)),
     pts_neck=dict(
         type='SECONDFPN',
-        in_channels=[128, 256],
-        out_channels=[256, 256],
+        in_channels=[64, 128],
+        out_channels=[64, 64],
         upsample_strides=[1, 2],
         norm_cfg=dict(type='BN', eps=0.001, momentum=0.01),
         upsample_cfg=dict(type='deconv', bias=False),
@@ -80,7 +87,7 @@ model = dict(
     img_neck=dict(
         type='GeneralizedLSSFPN',
         in_channels=[192, 384, 768],
-        out_channels=256,
+        out_channels=512,
         start_level=0,
         num_outs=3,
         norm_cfg=dict(type='BN2d', requires_grad=True),
@@ -101,34 +108,57 @@ train_pipeline = [
          to_float32=True,
          color_type='color'),
     dict(type='PrepareImageInputs',
-         # input_size=(512, 960),
          pre_scale=(0.6, 0.6),
          pre_crop=(-28, 0),
         #  rand_scale=(0.95, 1.05),
         #  rand_rotation=(-5.4, 5.4),
          rand_flip=False),
     dict(type='LoadAnnotations3D',
-         with_label_3d=True),
+         with_bbox_3d=False,
+         with_label_3d=False,
+         with_seg=True),
     dict(type='PointsRangeFilter', point_cloud_range=point_cloud_range),
-    # dict(type='PointShuffle'),
     dict(type='DefaultFormatBundle3D',
-         class_names=class_names,
+         class_names=[],
          with_label=False),
     dict(type='Collect3D',
-         keys=['img', 'points'],
+         keys=['img', 'points', 'gt_semantic_seg'],
          meta_keys=['cam2img', 'lidar2cam', 'img_aug_matrix'])
+]
+
+eval_pipeline = [
+    dict(
+        type='LoadPointsFromFile',
+        coord_type='LIDAR',
+        load_dim=5,
+        use_dim=5,
+        file_client_args=file_client_args),
+    dict(
+        type='LoadPointsFromMultiSweeps',
+        sweeps_num=10,
+        file_client_args=file_client_args),
+    dict(type='LoadAnnotations3D',
+         with_bbox_3d=False,
+         with_label_3d=False,
+         with_seg=True),
+    dict(
+        type='DefaultFormatBundle3D',
+        class_names=[],
+        with_label=False),
+    dict(type='Collect3D', keys=['points'], meta_keys=['sample_idx'])
 ]
 
 data = dict(
     samples_per_gpu=1,
-    workers_per_gpu=1,
+    workers_per_gpu=8,
     train=dict(
-        data_root=data_root,
-        ann_file=data_root + 'nuscenes_infos_train.pkl',
         pipeline=train_pipeline,
-        modality=input_modality
-    )
+        modality=input_modality),
+    val=dict(
+        # pipeline=test_pipeline,
+        modality=input_modality)
 )
 
-# lr = 0.001
-# optimizer = dict(lr=lr)
+lr = 0.001
+optimizer = dict(lr=lr)
+runner = dict(max_epochs=32)
