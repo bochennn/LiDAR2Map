@@ -1,1 +1,1 @@
-from .lift_splat import LSSViewTransformerV1
+from .lss_v2 import LSSViewTransformerV2

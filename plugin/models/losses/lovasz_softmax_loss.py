@@ -27,6 +27,8 @@ try:
 except ImportError:
     from itertools import filterfalse as ifilterfalse
 
+__all__ = ['lovasz_softmax', 'LovaszSoftmax']
+
 
 def isnan(x):
     return x != x
@@ -136,9 +138,9 @@ def flatten_probas(probas, labels, ignore=None):
     return vprobas, vlabels
 
 
-class Lovasz_softmax(nn.Module):
+class LovaszSoftmax(nn.Module):
     def __init__(self, classes='present', per_image=False, ignore=None):
-        super(Lovasz_softmax, self).__init__()
+        super(LovaszSoftmax, self).__init__()
         self.classes = classes
         self.per_image = per_image
         self.ignore = ignore

@@ -6,11 +6,11 @@ from mmdet3d.models.builder import NECKS
 from torch.cuda.amp.autocast_mode import autocast
 
 from ..layers.depth_net import DepthNet
-from .lss_v2 import LSSViewTransformer
+from .lss_v2 import LSSViewTransformerV2
 
 
 @NECKS.register_module()
-class LSSViewTransformerBEVDepth(LSSViewTransformer):
+class LSSViewTransformerBEVDepth(LSSViewTransformerV2):
 
     def __init__(self, loss_depth_weight=3.0, depthnet_cfg=dict(), **kwargs):
         super(LSSViewTransformerBEVDepth, self).__init__(**kwargs)

@@ -1,6 +1,9 @@
 # Copyright (c) OpenMMLab. All rights reserved.
+from typing import List
+
 import torch
 import torch.nn as nn
+import numpy as np
 from mmcv.runner import BaseModule
 from ...ops.bev_pool_v2.bev_pool import bev_pool_v2
 from torch.utils.checkpoint import checkpoint
@@ -9,7 +12,7 @@ from mmdet3d.models.builder import NECKS
 
 
 @NECKS.register_module()
-class LSSViewTransformer(BaseModule):
+class LSSViewTransformerV2(BaseModule):
     r"""Lift-Splat-Shoot view transformer with BEVPoolv2 implementation.
 
     Please refer to the `paper <https://arxiv.org/abs/2008.05711>`_ and
@@ -37,16 +40,16 @@ class LSSViewTransformer(BaseModule):
         self,
         grid_config,
         input_size,
-        downsample=16,
-        in_channels=512,
-        out_channels=64,
-        accelerate=False,
-        sid=False,
-        collapse_z=True,
-        with_cp=False,
-        with_depth_from_lidar=False,
+        downsample: int = 16,
+        in_channels: int = 512,
+        out_channels: int = 64,
+        accelerate: bool = False,
+        sid: bool = False,
+        collapse_z: bool = True,
+        with_cp: bool = False,
+        with_depth_from_lidar: bool = False,
     ):
-        super(LSSViewTransformer, self).__init__()
+        super(LSSViewTransformerV2, self).__init__()
         self.with_cp = with_cp
         self.grid_config = grid_config
         self.downsample = downsample
@@ -132,8 +135,13 @@ class LSSViewTransformer(BaseModule):
         # D x H x W x 3
         return torch.stack((x, y, d), -1)
 
-    def get_lidar_coor(self, sensor2ego, ego2global, cam2imgs, post_rots, post_trans,
-                       bda):
+    def get_lidar_coor(
+        self,
+        cam2lidar: torch.Tensor,
+        cam2imgs: torch.Tensor,
+        img_aug_matrix: torch.Tensor,
+        bda: torch.Tensor = None
+    ):
         """Calculate the locations of the frustum points in the lidar
         coordinate system.
 
@@ -154,24 +162,31 @@ class LSSViewTransformer(BaseModule):
             torch.tensor: Point coordinates in shape
                 (B, N_cams, D, ownsample, 3)
         """
-        B, N, _, _ = sensor2ego.shape
+        B, N, _, _ = cam2lidar.shape
 
         # post-transformation
         # B x N x D x H x W x 3
-        points = self.frustum.to(sensor2ego) - post_trans.view(B, N, 1, 1, 1, 3)
-        points = torch.inverse(post_rots).view(B, N, 1, 1, 1, 3, 3)\
+        points = self.frustum.to(cam2lidar) - img_aug_matrix[..., :3, 3].view(B, N, 1, 1, 1, 3)
+        points = torch.inverse(img_aug_matrix[..., :3, :3]).view(B, N, 1, 1, 1, 3, 3)\
             .matmul(points.unsqueeze(-1))
 
         # cam_to_ego
         points = torch.cat(
             (points[..., :2, :] * points[..., 2:3, :], points[..., 2:3, :]), 5)
-        combine = sensor2ego[:,:,:3,:3].matmul(torch.inverse(cam2imgs))
+        combine = cam2lidar[..., :3, :3].matmul(torch.inverse(cam2imgs))
         points = combine.view(B, N, 1, 1, 1, 3, 3).matmul(points).squeeze(-1)
-        points += sensor2ego[:,:,:3, 3].view(B, N, 1, 1, 1, 3)
-        points = bda[:, :3, :3].view(B, 1, 1, 1, 1, 3, 3).matmul(
-            points.unsqueeze(-1)).squeeze(-1)
-        points += bda[:, :3, 3].view(B, 1, 1, 1, 1, 3)
+        points += cam2lidar[..., :3, 3].view(B, N, 1, 1, 1, 3)
+        # points = bda[:, :3, :3].view(B, 1, 1, 1, 1, 3, 3).matmul(
+        #     points.unsqueeze(-1)).squeeze(-1)
+        # points += bda[:, :3, 3].view(B, 1, 1, 1, 1, 3)
         return points
+
+    def convert_metas(self, template: torch.Tensor, img_metas: List):
+        """ """
+        cam2lidar = template.new_tensor(np.stack([m['lidar2cam'] for m in img_metas]))
+        cam2imgs = template.new_tensor(np.stack([m['cam2img'] for m in img_metas]))
+        img_aug_matrix = template.new_tensor(np.stack([m['img_aug_matrix'] for m in img_metas]))
+        return cam2lidar, cam2imgs, img_aug_matrix
 
     def init_acceleration_v2(self, coor):
         """Pre-compute the necessary information in acceleration including the
@@ -237,17 +252,17 @@ class LSSViewTransformer(BaseModule):
         B, N, D, H, W, _ = coor.shape
         num_points = B * N * D * H * W
         # record the index of selected points for acceleration purpose
-        ranks_depth = torch.range(
-            0, num_points - 1, dtype=torch.int, device=coor.device)
-        ranks_feat = torch.range(
-            0, num_points // D - 1, dtype=torch.int, device=coor.device)
+        ranks_depth = torch.arange(
+            0, num_points, dtype=torch.int, device=coor.device)
+        ranks_feat = torch.arange(
+            0, num_points // D, dtype=torch.int, device=coor.device)
         ranks_feat = ranks_feat.reshape(B, N, 1, H, W)
         ranks_feat = ranks_feat.expand(B, N, D, H, W).flatten()
         # convert coordinate into the voxel space
         coor = ((coor - self.grid_lower_bound.to(coor)) /
                 self.grid_interval.to(coor))
         coor = coor.long().view(num_points, 3)
-        batch_idx = torch.range(0, B - 1).reshape(B, 1). \
+        batch_idx = torch.arange(0, B).reshape(B, 1). \
             expand(B, num_points // B).reshape(num_points, 1).to(coor)
         coor = torch.cat((coor, batch_idx), 1)
 
@@ -281,23 +296,23 @@ class LSSViewTransformer(BaseModule):
         ), ranks_feat.int().contiguous(), interval_starts.int().contiguous(
         ), interval_lengths.int().contiguous()
 
-    def pre_compute(self, input):
+    def pre_compute(self, template, img_metas):
         if self.initial_flag:
-            coor = self.get_lidar_coor(*input[1:7])
+            coor = self.get_lidar_coor(*self.convert_metas(template, img_metas))
             self.init_acceleration_v2(coor)
             self.initial_flag = False
 
-    def view_transform_core(self, input, depth, tran_feat):
-        B, N, C, H, W = input[0].shape
+    def view_transform_core(self, depth, tran_feat, img_metas):
+        _, C, H, W = tran_feat.shape
+        B = len(img_metas)
 
         # Lift-Splat
         if self.accelerate:
-            feat = tran_feat.view(B, N, self.out_channels, H, W)
+            feat = tran_feat.view(B, -1, self.out_channels, H, W)
             feat = feat.permute(0, 1, 3, 4, 2)
-            depth = depth.view(B, N, self.D, H, W)
+            depth = depth.view(B, -1, self.D, H, W)
             bev_feat_shape = (depth.shape[0], int(self.grid_size[2]),
-                              int(self.grid_size[1]), int(self.grid_size[0]),
-                              feat.shape[-1])  # (B, Z, Y, X, C)
+                              int(self.grid_size[1]), int(self.grid_size[0]), C)  # (B, Z, Y, X, C)
             bev_feat = bev_pool_v2(depth, feat, self.ranks_depth,
                                    self.ranks_feat, self.ranks_bev,
                                    bev_feat_shape, self.interval_starts,
@@ -305,20 +320,30 @@ class LSSViewTransformer(BaseModule):
 
             bev_feat = bev_feat.squeeze(2)
         else:
-            coor = self.get_lidar_coor(*input[1:7])
+            coor = self.get_lidar_coor(*self.convert_metas(tran_feat, img_metas))
             bev_feat = self.voxel_pooling_v2(
-                coor, depth.view(B, N, self.D, H, W),
-                tran_feat.view(B, N, self.out_channels, H, W))
+                coor, depth.view(B, -1, self.D, H, W),
+                tran_feat.view(B, -1, self.out_channels, H, W))
         return bev_feat, depth
 
-    def view_transform(self, input, depth, tran_feat):
+    def view_transform(
+        self,
+        depth: torch.Tensor,
+        tran_feat: torch.Tensor,
+        img_metas: List
+    ):
         for shape_id in range(3):
             assert depth.shape[shape_id+1] == self.frustum.shape[shape_id]
         if self.accelerate:
-            self.pre_compute(input)
-        return self.view_transform_core(input, depth, tran_feat)
+            self.pre_compute(tran_feat, img_metas)
+        return self.view_transform_core(depth, tran_feat, img_metas)
 
-    def forward(self, input, depth_from_lidar=None):
+    def forward(
+        self,
+        lvl_img_feats: List[torch.Tensor],
+        img_metas: List,
+        depth_from_lidar=None
+    ):
         """Transform image-view feature into bird-eye-view feature.
 
         Args:
@@ -328,27 +353,26 @@ class LSSViewTransformer(BaseModule):
         Returns:
             torch.tensor: Bird-eye-view feature in shape (B, C, H_BEV, W_BEV)
         """
-        x = input[0]
-        B, N, C, H, W = x.shape
-        x = x.view(B * N, C, H, W)
+        img_feats = lvl_img_feats[0]
+
         if self.with_depth_from_lidar:
             assert depth_from_lidar is not None
             if isinstance(depth_from_lidar, list):
                 assert len(depth_from_lidar) == 1
                 depth_from_lidar = depth_from_lidar[0]
             h_img, w_img = depth_from_lidar.shape[2:]
-            depth_from_lidar = depth_from_lidar.view(B * N, 1, h_img, w_img)
+            depth_from_lidar = depth_from_lidar.view(img_feats.shape[0], 1, h_img, w_img)
             depth_from_lidar = self.lidar_input_net(depth_from_lidar)
-            x = torch.cat([x, depth_from_lidar], dim=1)
+            img_feats = torch.cat([img_feats, depth_from_lidar], dim=1)
         if self.with_cp:
-            x =checkpoint(self.depth_net, x)
+            img_feats = checkpoint(self.depth_net, img_feats)
         else:
-            x = self.depth_net(x)
+            img_feats = self.depth_net(img_feats)
 
-        depth_digit = x[:, :self.D, ...]
-        tran_feat = x[:, self.D:self.D + self.out_channels, ...]
+        depth_digit = img_feats[:, :self.D, ...]
+        tran_feat = img_feats[:, self.D:self.D + self.out_channels, ...]
         depth = depth_digit.softmax(dim=1)
-        return self.view_transform(input, depth, tran_feat)
+        return self.view_transform(depth, tran_feat, img_metas)
 
     def get_mlp_input(self, rot, tran, intrin, post_rot, post_tran, bda):
         return None

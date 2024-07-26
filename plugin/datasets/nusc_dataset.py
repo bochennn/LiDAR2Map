@@ -3,22 +3,20 @@ from typing import Dict, List
 
 import numpy as np
 from mmdet3d.datasets.builder import DATASETS
-from mmdet3d.datasets.nuscenes_dataset import \
-    NuScenesDataset as _NuScenesDataset
+from mmdet3d.datasets.nuscenes_dataset import NuScenesDataset
 
-from .evaluate import batch_iou_numpy
-from .utils import rasterize_map
+from .evaluate import onehot_iou_numpy
 
 
-@DATASETS.register_module(force=True)
-class NuScenesDataset(_NuScenesDataset):
+@DATASETS.register_module()
+class NuScenesSegmentDataset(NuScenesDataset):
 
     def prepare_train_data(self, index: int) -> Dict:
         """Training data preparation.
 
-        Args:
-            index (int): Index for accessing the target data.
+        Args:t data.
 
+            index (int): Index for accessing the targe
         Returns:
             dict: Training data dict of the corresponding index.
         """
@@ -30,15 +28,9 @@ class NuScenesDataset(_NuScenesDataset):
         return example
 
     def get_ann_info(self, index: int) -> Dict:
-        info = self.data_infos[index]
-        instance_masks = rasterize_map(info['lane_polygons'],
-                                       (30, 60), (200, 400),
-                                       lane_types=self.CLASSES, thickness=5)
-        semantic_masks = np.vstack([
-            ~np.any(instance_masks, axis=0, keepdims=True), instance_masks != 0])
-
+        """ """
         anns_results = dict(
-            gt_semantic_seg=semantic_masks
+            lane_polygons=self.data_infos[index]['lane_polygons']
         )
         return anns_results
 
@@ -56,7 +48,7 @@ class NuScenesDataset(_NuScenesDataset):
             image_paths = []
             cam2img = []
             lidar2cam_rts = []
-            for cam_type, cam_info in info['cams'].items():
+            for _, cam_info in info['cams'].items():
                 image_paths.append(cam_info['data_path'])
                 # obtain lidar to image transformation matrix
                 lidar2cam_r = np.linalg.inv(cam_info['sensor2lidar_rotation'])
@@ -99,7 +91,7 @@ class NuScenesDataset(_NuScenesDataset):
 
             single_res.update(gt_semantic_seg=gt_semantic_seg,
                               pts_semantic_seg=single_res['pts_semantic_seg'].cpu().numpy())
-            pts_seg_iou.append(batch_iou_numpy(single_res['pts_semantic_seg'], gt_semantic_seg))
+            pts_seg_iou.append(onehot_iou_numpy(single_res['pts_semantic_seg'], gt_semantic_seg))
 
             # if 'fusion_semantic_seg' in single_res:
             #     fusion_seg_iou.append(batch_iou_numpy(single_res['fusion_semantic_seg'], gt_semantic_seg))

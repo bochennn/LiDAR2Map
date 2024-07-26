@@ -1,9 +1,11 @@
 from typing import List
+
 import torch
 import torch.nn.functional as F
 
 from ...ops.tree_filter import MinimumSpanningTree, TreeFilter2D
-from .loss import SimpleLoss
+
+__all__ = ['feature_distill_loss', 'logit_distill_loss']
 
 
 def feature_distill_loss(
@@ -39,13 +41,13 @@ def feature_distill_loss(
         lidar_affinity = tree_filter_layers(feature_in=lidar_affinity, embed_in=feature_pred_down,
                                             tree=mst_layers(feature_target_down), low_tree=False)
 
-        feature_distill_loss += F.l1_loss(lidar_affinity, fusion_affinity, reduction='mean') / B
+        feature_distill_loss += F.l1_loss(lidar_affinity, fusion_affinity, reduction='mean')
 
     return feature_distill_loss
 
 
 def logit_distill_loss(logits_preds: torch.Tensor, logits_targets: torch.Tensor):
     logit_distill_loss = F.kl_div(F.log_softmax(logits_preds, dim=1),
-                                    F.softmax(logits_targets.detach(), dim=1),
-                                    reduction='none').sum(dim=1).mean()
+                                  F.softmax(logits_targets.detach(), dim=1),
+                                  reduction='none').sum(dim=1).mean()
     return logit_distill_loss
