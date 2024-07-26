@@ -1,5 +1,5 @@
 
-from typing import List, Dict
+from typing import Dict, List
 
 import numpy as np
 from mmdet3d.datasets.builder import DATASETS
@@ -32,10 +32,8 @@ class NuScenesDataset(_NuScenesDataset):
     def get_ann_info(self, index: int) -> Dict:
         info = self.data_infos[index]
         instance_masks = rasterize_map(info['lane_polygons'],
-                                       (30, 60),
-                                       (200, 400),
-                                       lane_types=['divider', 'ped_crossing', 'boundary'],
-                                       thickness=5)
+                                       (30, 60), (200, 400),
+                                       lane_types=self.CLASSES, thickness=5)
         semantic_masks = np.vstack([
             ~np.any(instance_masks, axis=0, keepdims=True), instance_masks != 0])
 

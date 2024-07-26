@@ -2,7 +2,7 @@ from typing import List
 import torch
 import torch.nn.functional as F
 
-from .tree_filter.modules.tree_filter import MinimumSpanningTree, TreeFilter2D
+from ...ops.tree_filter import MinimumSpanningTree, TreeFilter2D
 from .loss import SimpleLoss
 
 

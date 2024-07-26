@@ -89,7 +89,7 @@ def rasterize_map(lane_polygons, patch_size, canvas_size, lane_types: List[str],
     confidence_levels = [-1]
     vector_num_list = {_type: [] for _type in lane_types}
     for polygons in lane_polygons:
-        if polygons['pts_num'] > 1:
+        if polygons['pts_num'] > 1 and polygons['type'] in lane_types:
             vector_num_list[polygons['type']].append(
                 LineString(polygons['pts'][:polygons['pts_num']]))
 

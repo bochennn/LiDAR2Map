@@ -6,6 +6,8 @@ custom_imports = dict(
     imports=['plugin.models.detectors.lidar2map'],
     allow_failed_imports=False)
 
+class_names = ['boundary'] # 'divider', 'ped_crossing', 'boundary'
+
 point_cloud_range = [-30.0, -15.0, -5.0, 30.0, 15.0, 3.0]
 voxel_size = [0.15, 0.15, 8]
 depth_range = [1.0, 30.0, 0.5]
@@ -99,11 +101,11 @@ model = dict(
     pts_seg_head=dict(
         type='BEV_FPD',
         in_channels=128,
-        out_channels=4),
+        out_channels=len(class_names) + 1),
     fusion_seg_head=dict(
         type='BEV_FPD',
         in_channels=128,
-        out_channels=4)
+        out_channels=len(class_names) + 1)
 )
 
 train_pipeline = [
@@ -164,9 +166,11 @@ data = dict(
     workers_per_gpu=8,
     train=dict(
         pipeline=train_pipeline,
+        classes=class_names,
         modality=input_modality),
     val=dict(
-        # pipeline=test_pipeline,
+        pipeline=eval_pipeline,
+        classes=class_names,
         modality=input_modality)
 )
 

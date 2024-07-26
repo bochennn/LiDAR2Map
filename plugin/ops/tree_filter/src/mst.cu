@@ -94,9 +94,9 @@ at::Tensor mst_forward(
     auto edge_weight_cpu  = edge_weight_tensor.cpu(); 
     auto edge_out_cpu     = at::empty({batch_size, vertex_count - 1, 2}, edge_index_cpu.options());
     
-    int * edge_out      = edge_out_cpu.contiguous().data<int>();
-    int * edge_index    = edge_index_cpu.contiguous().data<int>();
-    float * edge_weight = edge_weight_cpu.contiguous().data<float>(); 
+    int * edge_out      = edge_out_cpu.contiguous().data_ptr<int>();
+    int * edge_index    = edge_index_cpu.contiguous().data_ptr<int>();
+    float * edge_weight = edge_weight_cpu.contiguous().data_ptr<float>(); 
 
     // Loop for batch
     std::thread pids[batch_size];

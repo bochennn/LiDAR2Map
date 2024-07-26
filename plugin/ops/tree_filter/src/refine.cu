@@ -220,15 +220,15 @@ refine_forward(
 
     cudaStream_t stream = at::cuda::getCurrentCUDAStream();
 
-    float * feature_in          = feature_in_tensor.contiguous().data<float>();
-    float * edge_weight         = edge_weight_tensor.contiguous().data<float>();
-    int * sorted_index          = sorted_index_tensor.contiguous().data<int>();
-    int * sorted_parent_index   = sorted_parent_tensor.contiguous().data<int>();
-    int * sorted_child_index    = sorted_child_tensor.contiguous().data<int>();
-    float * feature_aggr        = feature_aggr_tensor.contiguous().data<float>();
-    float * feature_aggr_sum    = feature_aggr_up_tensor.contiguous().data<float>();
-    float * weight_sum          = weight_sum_tensor.contiguous().data<float>();
-    float * weight_aggr_sum     = weight_sum_up_tensor.contiguous().data<float>();
+    float * feature_in          = feature_in_tensor.contiguous().data_ptr<float>();
+    float * edge_weight         = edge_weight_tensor.contiguous().data_ptr<float>();
+    int * sorted_index          = sorted_index_tensor.contiguous().data_ptr<int>();
+    int * sorted_parent_index   = sorted_parent_tensor.contiguous().data_ptr<int>();
+    int * sorted_child_index    = sorted_child_tensor.contiguous().data_ptr<int>();
+    float * feature_aggr        = feature_aggr_tensor.contiguous().data_ptr<float>();
+    float * feature_aggr_sum    = feature_aggr_up_tensor.contiguous().data_ptr<float>();
+    float * weight_sum          = weight_sum_tensor.contiguous().data_ptr<float>();
+    float * weight_aggr_sum     = weight_sum_up_tensor.contiguous().data_ptr<float>();
 
     dim3 feature_block_dims(CUDA_NUM_THREADS, 1, 1), feature_grid_dims(batch_size, channel_size, 1);
     leaf_root_aggr_kernel <<< feature_grid_dims, feature_block_dims, sizeof(int) * CUDA_NUM_THREADS, stream >>>(
@@ -273,20 +273,20 @@ at::Tensor refine_backward_feature(
     const int vertex_size       = feature_in_tensor.size(2);
     const int max_adj_per_node  = sorted_child_tensor.size(2);
 
-    float * feature_in          = feature_in_tensor.contiguous().data<float>();
-    float * edge_weight         = edge_weight_tensor.contiguous().data<float>();
-    int * sorted_index          = sorted_index_tensor.contiguous().data<int>();
-    int * sorted_parent_index   = sorted_parent_tensor.contiguous().data<int>();
-    int * sorted_child_index    = sorted_child_tensor.contiguous().data<int>();
-    float * feature_aggr        = feature_aggr_tensor.contiguous().data<float>();
-    float * feature_aggr_sum    = feature_aggr_up_tensor.contiguous().data<float>();
-    float * weight_sum          = weight_sum_tensor.contiguous().data<float>();
-    float * weight_aggr_sum     = weight_sum_up_tensor.contiguous().data<float>();
-    float * grad_out            = grad_out_tensor.contiguous().data<float>();
-    float * grad_feature        = grad_feature_tensor.contiguous().data<float>();
+    float * feature_in          = feature_in_tensor.contiguous().data_ptr<float>();
+    float * edge_weight         = edge_weight_tensor.contiguous().data_ptr<float>();
+    int * sorted_index          = sorted_index_tensor.contiguous().data_ptr<int>();
+    int * sorted_parent_index   = sorted_parent_tensor.contiguous().data_ptr<int>();
+    int * sorted_child_index    = sorted_child_tensor.contiguous().data_ptr<int>();
+    float * feature_aggr        = feature_aggr_tensor.contiguous().data_ptr<float>();
+    float * feature_aggr_sum    = feature_aggr_up_tensor.contiguous().data_ptr<float>();
+    float * weight_sum          = weight_sum_tensor.contiguous().data_ptr<float>();
+    float * weight_aggr_sum     = weight_sum_up_tensor.contiguous().data_ptr<float>();
+    float * grad_out            = grad_out_tensor.contiguous().data_ptr<float>();
+    float * grad_feature        = grad_feature_tensor.contiguous().data_ptr<float>();
 
-    float * grad_out_norm           = grad_out_norm_tensor.contiguous().data<float>();
-    float * grad_feature_aggr_sum   = grad_feature_aggr_sum_tensor.contiguous().data<float>();
+    float * grad_out_norm           = grad_out_norm_tensor.contiguous().data_ptr<float>();
+    float * grad_feature_aggr_sum   = grad_feature_aggr_sum_tensor.contiguous().data_ptr<float>();
 
     cudaStream_t stream = at::cuda::getCurrentCUDAStream();
 
@@ -321,33 +321,33 @@ at::Tensor refine_backward_weight(
     const int vertex_size       = feature_in_tensor.size(2);
     const int max_adj_per_node  = sorted_child_tensor.size(2);
 
-    float * feature_in          = feature_in_tensor.contiguous().data<float>();
-    float * edge_weight         = edge_weight_tensor.contiguous().data<float>();
-    int * sorted_index          = sorted_index_tensor.contiguous().data<int>();
-    int * sorted_parent_index   = sorted_parent_tensor.contiguous().data<int>();
-    int * sorted_child_index    = sorted_child_tensor.contiguous().data<int>();
-    float * feature_out         = feature_out_tensor.contiguous().data<float>();
-    float * feature_aggr        = feature_aggr_tensor.contiguous().data<float>();
-    float * feature_aggr_sum    = feature_aggr_up_tensor.contiguous().data<float>();
-    float * weight_sum          = weight_sum_tensor.contiguous().data<float>();
-    float * weight_aggr_sum     = weight_sum_up_tensor.contiguous().data<float>();
-    float * grad_out            = grad_out_tensor.contiguous().data<float>();
-    float * grad_weight         = grad_weight_tensor.contiguous().data<float>();
+    float * feature_in          = feature_in_tensor.contiguous().data_ptr<float>();
+    float * edge_weight         = edge_weight_tensor.contiguous().data_ptr<float>();
+    int * sorted_index          = sorted_index_tensor.contiguous().data_ptr<int>();
+    int * sorted_parent_index   = sorted_parent_tensor.contiguous().data_ptr<int>();
+    int * sorted_child_index    = sorted_child_tensor.contiguous().data_ptr<int>();
+    float * feature_out         = feature_out_tensor.contiguous().data_ptr<float>();
+    float * feature_aggr        = feature_aggr_tensor.contiguous().data_ptr<float>();
+    float * feature_aggr_sum    = feature_aggr_up_tensor.contiguous().data_ptr<float>();
+    float * weight_sum          = weight_sum_tensor.contiguous().data_ptr<float>();
+    float * weight_aggr_sum     = weight_sum_up_tensor.contiguous().data_ptr<float>();
+    float * grad_out            = grad_out_tensor.contiguous().data_ptr<float>();
+    float * grad_weight         = grad_weight_tensor.contiguous().data_ptr<float>();
     
     auto grad_all_channel_tensor        = at::zeros_like(feature_in_tensor, options);
     auto grad_norm_all_channel_tensor   = at::zeros_like(feature_in_tensor, options);
     auto grad_out_norm_aggr_sum_tensor  = at::zeros_like(feature_in_tensor, options);
     auto feature_grad_aggr_sum_tensor   = at::zeros_like(feature_in_tensor, options);
     
-    float * grad_all_channel            = grad_all_channel_tensor.contiguous().data<float>();
-    float * grad_norm_all_channel       = grad_norm_all_channel_tensor.contiguous().data<float>();
-    float * grad_out_norm_aggr_sum      = grad_out_norm_aggr_sum_tensor.contiguous().data<float>();
-    float * feature_grad_aggr_sum       = feature_grad_aggr_sum_tensor.contiguous().data<float>();
+    float * grad_all_channel            = grad_all_channel_tensor.contiguous().data_ptr<float>();
+    float * grad_norm_all_channel       = grad_norm_all_channel_tensor.contiguous().data_ptr<float>();
+    float * grad_out_norm_aggr_sum      = grad_out_norm_aggr_sum_tensor.contiguous().data_ptr<float>();
+    float * feature_grad_aggr_sum       = feature_grad_aggr_sum_tensor.contiguous().data_ptr<float>();
 
     auto grad_out_norm_tensor = grad_out_tensor / weight_sum_tensor.unsqueeze(1);
     auto feature_grad_tensor  = grad_out_norm_tensor * feature_out_tensor; 
-    float * grad_out_norm     = grad_out_norm_tensor.contiguous().data<float>();
-    float * feature_grad      = feature_grad_tensor.contiguous().data<float>();
+    float * grad_out_norm     = grad_out_norm_tensor.contiguous().data_ptr<float>();
+    float * feature_grad      = feature_grad_tensor.contiguous().data_ptr<float>();
 
     cudaStream_t stream = at::cuda::getCurrentCUDAStream();
 

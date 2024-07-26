@@ -44,17 +44,17 @@ class PositionGuidedFusion(nn.Module):
             nn.BatchNorm2d(img_feats_channel)
         )
 
-        self.attention = nn.Sequential(
-            nn.AdaptiveAvgPool2d(1),
-            nn.Conv2d(img_feats_channel, img_feats_channel,
-                      kernel_size=1, padding=0, stride=1),
-            nn.LayerNorm([img_feats_channel, 1, 1]),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(img_feats_channel, img_feats_channel,
-                      kernel_size=1, padding=0, stride=1),
-            nn.LayerNorm([img_feats_channel, 1, 1]),
-            nn.Sigmoid()
-        )
+        # self.attention = nn.Sequential(
+        #     nn.AdaptiveAvgPool2d(1),
+        #     nn.Conv2d(img_feats_channel, img_feats_channel,
+        #               kernel_size=1, padding=0, stride=1),
+        #     nn.LayerNorm([img_feats_channel, 1, 1]),
+        #     nn.ReLU(inplace=True),
+        #     nn.Conv2d(img_feats_channel, img_feats_channel,
+        #               kernel_size=1, padding=0, stride=1),
+        #     nn.LayerNorm([img_feats_channel, 1, 1]),
+        #     nn.Sigmoid()
+        # )
 
     def forward(self, fea_cam, fea_lidar):
         # add coord for camera
@@ -70,7 +70,7 @@ class PositionGuidedFusion(nn.Module):
         fuse_out = self.fuse_conv(cat_feature)
 
         fuse_out = self.fuse_posconv(torch.cat((fuse_out, coord_feat), dim=1))
-        attention_map = self.attention(fuse_out)
-        out = fuse_out * attention_map + fea_cam
+        # attention_map = self.attention(fuse_out)
+        out = fuse_out + fea_cam
 
         return out
