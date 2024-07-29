@@ -90,7 +90,7 @@ parser.add_argument(
 parser.add_argument(
     '--out-dir',
     type=Path,
-    default='./data/nuscenes',
+    default='./data',
     required=False,
     help='name of info pkl')
 parser.add_argument('--extra-tag', type=str, default='nuscenes')
@@ -116,7 +116,7 @@ if __name__ == '__main__':
             train_version = f'{args.version}' # trainval
             nuscenes_data_prep(
                 root_path=args.root_path,
-                out_dir=args.out_dir,
+                out_dir=args.out_dir / args.dataset,
                 info_prefix=args.dataset,
                 version=train_version,
                 dataset_name='NuScenesDataset',
@@ -124,7 +124,7 @@ if __name__ == '__main__':
     elif args.dataset == 'zdrive':
         zdrive_data_prep(
             root_path=args.root_path,
-            out_dir=args.out_dir,
+            out_dir=args.out_dir / args.dataset,
             info_prefix=args.dataset,
             workers=args.workers)
     else:

@@ -1,6 +1,7 @@
 from .detectors.lidar2map import LiDAR2Map
 # from .lidar.pointpillar import PointPillar
 # from .camera.lift_splat import LiftSplat
+from .backbones import *
 from .layers import *
 from .necks import *
 from .view_transform import *

@@ -117,7 +117,7 @@ train_pipeline = [
          pre_scale=(0.5, 0.5), pre_crop=(-2, 0),
          rand_scale=(0.95, 1.05), rand_rotation=(-5.4, 5.4)),
     dict(type='LoadAnnotations3D', class_names=class_names,
-         pts_range=pts_range, bev_grid_size=bev_grid_size),
+         pts_range=pts_range, bev_grid_size=bev_grid_size, with_seg=True),
     dict(type='PointsRangeFilter', point_cloud_range=pts_range),
     dict(type='DefaultFormatBundle3D', class_names=[], with_label=False),
     dict(type='Collect3D',
@@ -129,7 +129,7 @@ eval_pipeline = [
     dict(type='LoadPointsFromFile', coord_type='LIDAR', load_dim=5, use_dim=5),
     dict(type='LoadPointsFromMultiSweeps', sweeps_num=3),
     dict(type='LoadAnnotations3D', class_names=class_names,
-         pts_range=pts_range, bev_grid_size=bev_grid_size),
+         pts_range=pts_range, bev_grid_size=bev_grid_size, with_seg=True),
     dict(type='PointsRangeFilter', point_cloud_range=pts_range),
     dict(type='DefaultFormatBundle3D', class_names=[], with_label=False),
     dict(type='Collect3D', keys=['points', 'gt_semantic_seg'])
@@ -153,4 +153,4 @@ data = dict(
 optimizer = dict(lr=0.001)
 runner = dict(max_epochs=32)
 
-evaluation = dict(interval=1, pipeline=eval_pipeline)
+evaluation = dict(pipeline=eval_pipeline)

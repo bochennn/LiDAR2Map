@@ -40,11 +40,11 @@ def create_zdrive_infos(root_path: Path, out_dir: Path, info_prefix: str,
                         batch_names: List[str], workers: int = 1):
 
     available_clips = get_available_scenes(root_path, batch_names)
-    train_scenes = ['clip_1717399216201']
+    val_scenes = ['clip_1717399216201']
 
-    train_zd_infos, val_zd_infos = _fill_trainval_infos(available_clips, train_scenes)
+    train_zd_infos, val_zd_infos = _fill_trainval_infos(available_clips, val_scenes)
 
-    metadata = dict()
+    metadata = dict(version='')
     print('train sample: {}, val sample: {}'.format(
             len(train_zd_infos), len(val_zd_infos)))
     data = dict(infos=train_zd_infos, metadata=metadata)
@@ -58,7 +58,7 @@ def create_zdrive_infos(root_path: Path, out_dir: Path, info_prefix: str,
 
 
 def _fill_trainval_infos(available_clips: List[Path],
-                         train_scenes: List[str],
+                         val_scenes: List[str],
                          max_sweeps: int = 10):
     train_zd_infos = []
     val_zd_infos = []
@@ -96,11 +96,13 @@ def _fill_trainval_infos(available_clips: List[Path],
                     pose_record[closest_ind]['pose']['orientation']['qw']]).as_matrix())
 
             out_info = {
-                'scene_name': clip_root.stem,
+                'token': frame_info['frame_id'],
                 'frame_name': frame_info['frame_name'],
+                'scene_name': clip_root.stem,
                 'lidars': dict(),
                 'cams': dict(),
                 'sweeps': [],
+                'timestamp': frame_info['lidar_collect'],
             }
 
             for cam_token in USING_CAMERA:
@@ -171,10 +173,10 @@ def _fill_trainval_infos(available_clips: List[Path],
             out_info['num_lidar_pts'] = np.array([a['num_lidar_pts'] for a in od_ann_info])
 
             # box_list.append(out_info['gt_boxes'])
-            if out_info['scene_name'] in train_scenes:
-                train_zd_infos.append(out_info)
-            else:
+            if out_info['scene_name'] in val_scenes:
                 val_zd_infos.append(out_info)
+            else:
+                train_zd_infos.append(out_info)
         # show_o3d([np.vstack(pts_list)], [{'box3d': np.vstack(box_list)}])
     return train_zd_infos, val_zd_infos
 
@@ -192,5 +194,4 @@ def get_available_scenes(root_path: Path, batch_names: List[str]) -> List[Path]:
                 print(list((fpath / 'annotation').glob('*')))
                 continue
             clip_list.append(fpath)
-            break
     return clip_list

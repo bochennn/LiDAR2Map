@@ -1,13 +1,89 @@
+from pathlib import Path
 from typing import Any, Dict, Tuple
 
+import mmcv
 import numpy as np
 from mmcv.image import imnormalize
+from mmdet3d.core.points import get_points_type
 from mmdet3d.datasets.builder import PIPELINES
 from mmdet3d.datasets.pipelines.loading import \
     LoadAnnotations3D as _LoadAnnotations3D
+from mmdet3d.datasets.pipelines.loading import \
+    LoadPointsFromFile as _LoadPointsFromFile
 from PIL import Image
 
-from ..utils import rasterize_map
+from ...utils import convert_points, rasterize_map, read_points_pcd
+
+
+@PIPELINES.register_module(force=True)
+class LoadPointsFromFile(_LoadPointsFromFile):
+
+    def _load_points(self, pts_filename):
+        """Private function to load point clouds data.
+
+        Args:
+            pts_filename (str): Filename of point clouds data.
+
+        Returns:
+            np.ndarray: An array containing point clouds data.
+        """
+        if self.file_client is None:
+            self.file_client = mmcv.FileClient(**self.file_client_args)
+
+        try:
+            if pts_filename.endswith('.pcd'):
+                points = read_points_pcd(pts_filename)[:, :self.load_dim]
+            elif pts_filename.endswith('.bin'):
+                pts_bytes = self.file_client.get(pts_filename)
+                points = np.frombuffer(pts_bytes, dtype=np.float32).reshape(-1, self.load_dim)
+            else:
+                raise NotImplementedError(pts_filename)
+
+        except ConnectionError:
+            # mmcv.check_file_exist(pts_filename)
+            if pts_filename.endswith('.npy'):
+                points = np.load(pts_filename)
+            else:
+                points = np.fromfile(pts_filename, dtype=np.float32)
+
+        return points
+
+    def __call__(self, results):
+
+        pts_filename = results['pts_filename']
+        if not Path(pts_filename).exists():
+            print(f'pts filepath {pts_filename} not exists!!!')
+            return None
+
+        points = self._load_points(pts_filename)
+        points = points[:, self.use_dim]
+        attribute_dims = None
+
+        if self.shift_height:
+            floor_height = np.percentile(points[:, 2], 0.99)
+            height = points[:, 2] - floor_height
+            points = np.concatenate(
+                [points[:, :3],
+                 np.expand_dims(height, 1), points[:, 3:]], 1)
+            attribute_dims = dict(height=3)
+
+        if self.use_color:
+            assert len(self.use_dim) >= 6
+            if attribute_dims is None:
+                attribute_dims = dict()
+            attribute_dims.update(
+                dict(color=[
+                    points.shape[1] - 3,
+                    points.shape[1] - 2,
+                    points.shape[1] - 1,
+                ]))
+
+        points = convert_points(points, results['lidar2ego'])
+        points_class = get_points_type(self.coord_type)
+        points = points_class(
+            points, points_dim=points.shape[-1], attribute_dims=attribute_dims)
+        results['points'] = points
+        return results
 
 
 @PIPELINES.register_module()
@@ -140,9 +216,10 @@ class PrepareImageInputs(object):
 class LoadAnnotations3D(_LoadAnnotations3D):
 
     def __init__(
-        self, pts_range, bev_grid_size, class_names,
+        self, pts_range: Tuple = None,
+        bev_grid_size: Tuple = None, class_names: Tuple = None,
         with_bbox_3d: bool = False, with_label_3d: bool = False,
-        with_seg: bool = True, **kwargs):
+        with_seg: bool = False, **kwargs):
         super(LoadAnnotations3D, self).__init__(
             with_bbox_3d=with_bbox_3d,
             with_label_3d=with_label_3d,
