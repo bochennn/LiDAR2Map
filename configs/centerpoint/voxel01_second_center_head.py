@@ -122,8 +122,11 @@ eval_pipeline = [
 ]
 
 data = dict(
-    samples_per_gpu=1,
-    workers_per_gpu=4,
+    samples_per_gpu=2,
+    workers_per_gpu=8,
     train=dict(pipeline=train_pipeline),
     val=dict(pipeline=eval_pipeline)
 )
+
+optimizer = dict(lr=0.001)
+runner = dict(max_epochs=64)

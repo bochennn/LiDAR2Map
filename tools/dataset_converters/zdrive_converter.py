@@ -1,7 +1,7 @@
 import json
+import pickle
 from pathlib import Path
 from typing import List
-import pickle
 
 import numpy as np
 import yaml
@@ -40,7 +40,7 @@ def create_zdrive_infos(root_path: Path, out_dir: Path, info_prefix: str,
                         batch_names: List[str], workers: int = 1):
 
     available_clips = get_available_scenes(root_path, batch_names)
-    val_scenes = ['clip_1717399216201']
+    val_scenes = Path('data/zdrive/val.txt').read_text().splitlines()
 
     train_zd_infos, val_zd_infos = _fill_trainval_infos(available_clips, val_scenes)
 
@@ -165,9 +165,13 @@ def _fill_trainval_infos(available_clips: List[Path],
             locs = np.array([a['obj_center_pos'] for a in od_ann_info]).reshape(-1, 3)
             dims = np.array([a['size'] for a in od_ann_info]).reshape(-1, 3)
             rots = np.array([Rotation.from_quat(a['obj_rotation']).as_rotvec() for a in od_ann_info])
-            out_info['gt_boxes'] = convert_boxes(
-                np.concatenate([locs, dims, rots[:, 2:3]], axis=1), lidar2ego)
-            # out_info['gt_boxes'] = convert_boxes(out_info['gt_boxes'], ego2ref)
+
+            if len(locs) > 0:
+                out_info['gt_boxes'] = convert_boxes(
+                    np.concatenate([locs, dims, rots[:, 2:3]], axis=1), lidar2ego)
+                # out_info['gt_boxes'] = convert_boxes(out_info['gt_boxes'], ego2ref)
+            else:
+                out_info['gt_boxes'] = np.zeros((0, 7))
             out_info['gt_names'] = np.array([a['category'] for a in od_ann_info])
             out_info['track_ids'] = np.array([a['track_id'] for a in od_ann_info])
             out_info['num_lidar_pts'] = np.array([a['num_lidar_pts'] for a in od_ann_info])
@@ -177,6 +181,7 @@ def _fill_trainval_infos(available_clips: List[Path],
                 val_zd_infos.append(out_info)
             else:
                 train_zd_infos.append(out_info)
+            # show_o3d([pts_list[0]], [{'box3d': box_list[0]}])
         # show_o3d([np.vstack(pts_list)], [{'box3d': np.vstack(box_list)}])
     return train_zd_infos, val_zd_infos
 
@@ -191,7 +196,7 @@ def get_available_scenes(root_path: Path, batch_names: List[str]) -> List[Path]:
                 continue
             if not any([(fpath / 'annotation' / ann_prefix).exists()
                 for ann_prefix in OD_ANNOTATION_PREFIX]):
-                print(list((fpath / 'annotation').glob('*')))
+                # print(list((fpath / 'annotation').glob('*')))
                 continue
             clip_list.append(fpath)
     return clip_list

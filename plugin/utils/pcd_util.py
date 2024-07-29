@@ -8,7 +8,7 @@ def read_points_pcd(
     filepath: str,
     fields: List = ['x', 'y', 'z', 'intensity', 'timestamp', 'ring']
 ) -> np.ndarray:
-    # pip install git+https//github.com/bochennn/pypcd.git
+    # pip3 install git+https://github.com/bochennn/pypcd.git
     from pypcd import pypcd
     pcd = pypcd.point_cloud_from_path(filepath)
 

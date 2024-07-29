@@ -1,10 +1,10 @@
 **/build
 **/work_dirs
-data
 
 **__pycache__**
 **.so
 *.pyc
 *.pt
+*.pkl
 *.log
 *.tfevents.*

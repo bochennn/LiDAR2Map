@@ -13,27 +13,6 @@ from torch.utils.cpp_extension import (BuildExtension, CppExtension,
                                        CUDAExtension)
 
 
-# def readme():
-#     with open('README.md', encoding='utf-8') as f:
-#         content = f.read()
-#     return content
-
-
-# version_file = 'mmdet3d/version.py'
-
-
-# def get_version():
-#     with open(version_file, 'r') as f:
-#         exec(compile(f.read(), version_file, 'exec'))
-#     import sys
-
-#     # return short version for sdist
-#     if 'sdist' in sys.argv or 'bdist_wheel' in sys.argv:
-#         return locals()['short_version']
-#     else:
-#         return locals()['__version__']
-
-
 def make_cuda_ext(name,
                   module,
                   sources,
