@@ -132,7 +132,7 @@ eval_pipeline = [
          pts_range=pts_range, bev_grid_size=bev_grid_size),
     dict(type='PointsRangeFilter', point_cloud_range=pts_range),
     dict(type='DefaultFormatBundle3D', class_names=[], with_label=False),
-    dict(type='Collect3D', keys=['points'], meta_keys=['sample_idx'])
+    dict(type='Collect3D', keys=['points', 'gt_semantic_seg'])
 ]
 
 data = dict(

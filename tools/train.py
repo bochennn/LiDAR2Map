@@ -21,6 +21,7 @@ from mmdet3d.models import build_model
 from mmdet3d.utils import collect_env, get_root_logger
 from mmdet.apis import set_random_seed
 from mmseg import __version__ as mmseg_version
+from plugin.utils import convert_sync_batchnorm
 
 try:
     # If mmdet version > 2.20.0, setup_multi_processes would be imported and
@@ -91,6 +92,11 @@ def parse_args():
         '--autoscale-lr',
         action='store_true',
         help='automatically scale lr with the number of gpus')
+    parser.add_argument(
+        '--sync_bn',
+        action='store_true',
+        help='convert all BatchNorm layers in the model to SyncBatchNorm '
+        '(SyncBN) or mmcv.ops.sync_bn.SyncBatchNorm (MMSyncBN) layers.')
     args = parser.parse_args()
     if 'LOCAL_RANK' not in os.environ:
         os.environ['LOCAL_RANK'] = str(args.local_rank)
@@ -206,6 +212,9 @@ def main():
         train_cfg=cfg.get('train_cfg'),
         test_cfg=cfg.get('test_cfg'))
     model.init_weights()
+
+    if distributed and args.sync_bn:
+        model = convert_sync_batchnorm(model)
 
     logger.info(f'Model:\n{model}')
     datasets = [build_dataset(cfg.data.train)]

@@ -6,8 +6,8 @@ from pathlib import Path
 # from dataset_converters import indoor_converter as indoor
 # from dataset_converters import kitti_converter as kitti
 # from dataset_converters import lyft_converter as lyft_converter
-from dataset_converters import nuscenes_converter as nuscenes_converter
-# from dataset_converters import semantickitti_converter
+from dataset_converters import nuscenes_converter
+from dataset_converters import zdrive_converter
 from dataset_converters.create_gt_database import (GTDatabaseCreater,
                                                    create_groundtruth_database)
 
@@ -54,6 +54,20 @@ def nuscenes_data_prep(root_path: Path,
     # create_groundtruth_database(dataset_name, root_path, info_prefix,
     #                             f'{info_prefix}_infos_train.pkl')
 
+
+def zdrive_data_prep(root_path: Path,
+                     out_dir: Path,
+                     version: str,
+                     max_sweeps=10,
+                     workers=1):
+
+    version = [
+        'E03-CITY-20240702-undownloaded',
+        'NON-E03-CITY-20240702-undownloaded',
+    ]
+    zdrive_converter.create_zdrive_infos(root_path, version)
+
+    return 
 
 parser = argparse.ArgumentParser(description='Data converter arg parser')
 parser.add_argument('dataset', metavar='nuscenes', help='name of the dataset')
@@ -103,18 +117,17 @@ if __name__ == '__main__':
             train_version = f'{args.version}' # trainval
             nuscenes_data_prep(
                 root_path=args.root_path,
+                out_dir=args.out_dir,
                 info_prefix=args.extra_tag,
                 version=train_version,
                 dataset_name='NuScenesDataset',
-                out_dir=args.out_dir,
                 max_sweeps=args.max_sweeps)
     elif args.dataset == 'zdrive':
-        waymo_data_prep(
+        zdrive_data_prep(
             root_path=args.root_path,
-            info_prefix=args.extra_tag,
-            version=args.version,
             out_dir=args.out_dir,
-            workers=args.workers,
-            max_sweeps=args.max_sweeps)
+            version=args.version,
+            max_sweeps=args.max_sweeps,
+            workers=args.workers)
     else:
         raise NotImplementedError(f'Don\'t support {args.dataset} dataset.')

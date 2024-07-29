@@ -5,7 +5,7 @@ import numpy as np
 from mmdet3d.datasets.builder import DATASETS
 from mmdet3d.datasets.nuscenes_dataset import NuScenesDataset
 
-from .evaluate import onehot_iou_numpy
+# from .evaluate import onehot_iou_numpy
 
 
 @DATASETS.register_module()
@@ -71,9 +71,8 @@ class NuScenesSegmentDataset(NuScenesDataset):
                     lidar2cam=np.stack(lidar2cam_rts)
                 ))
 
-        if not self.test_mode:
-            annos = self.get_ann_info(index)
-            input_dict['ann_info'] = annos
+        annos = self.get_ann_info(index)
+        input_dict['ann_info'] = annos
 
         return input_dict
 
@@ -85,14 +84,13 @@ class NuScenesSegmentDataset(NuScenesDataset):
             format(len(results), len(self)))
 
         pts_seg_iou, fusion_seg_iou = [], []
-        for idx, single_res in enumerate(results):
-            anno_info = self.get_ann_info(idx)
-            gt_semantic_seg = anno_info['gt_semantic_seg']
+        for single_res in results:
+            # gt_semantic_seg = single_res['gt_semantic_seg'].cpu().numpy()
 
-            single_res.update(gt_semantic_seg=gt_semantic_seg,
-                              pts_semantic_seg=single_res['pts_semantic_seg'].cpu().numpy())
-            pts_seg_iou.append(onehot_iou_numpy(single_res['pts_semantic_seg'], gt_semantic_seg))
-
+            # single_res.update(gt_semantic_seg=gt_semantic_seg,
+                            #   pts_semantic_seg=single_res['pts_semantic_seg'].cpu().numpy())
+            # pts_seg_iou.append(onehot_iou_numpy(single_res['pts_semantic_seg'], gt_semantic_seg))
+            pts_seg_iou.append(single_res['pts_seg_iou'].cpu().numpy())
             # if 'fusion_semantic_seg' in single_res:
             #     fusion_seg_iou.append(batch_iou_numpy(single_res['fusion_semantic_seg'], gt_semantic_seg))
 

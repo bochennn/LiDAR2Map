@@ -94,8 +94,8 @@ class LiDAR2Map(BEVFusion):
         student_feats: torch.Tensor,
         teacher_feats: torch.Tensor,
         low_level_feats: torch.Tensor,
-        loss_feats_weight: float = 0.4,
-        loss_logits_weight: float = 1.5,
+        loss_feats_weight: float = 0.5,
+        loss_logits_weight: float = 2.0,
     ):
         pts_logits_loss = logits_loss(pts_semantic_logits, gt_semantic_seg)
         fusion_logits_loss = logits_loss(fusion_semantic_logits, gt_semantic_seg)
@@ -108,20 +108,28 @@ class LiDAR2Map(BEVFusion):
         loss_dict = dict(
             loss_seg_lidar=pts_logits_loss,
             loss_seg_fusion=fusion_logits_loss,
-            loss_feats=loss_distill_feats,
-            loss_logits=loss_distill_logits,
+            loss_feats=loss_distill_feats * loss_feats_weight,
+            loss_logits=loss_distill_logits * loss_logits_weight,
         )
 
         for idx, cls_iou in enumerate(pts_iou):
             loss_dict[f'pts_seg_iou_cls_{idx}'] = cls_iou.detach()
         return loss_dict
 
-    def simple_test(self, points: torch.Tensor, img_metas, img, **kwargs):
+    def forward_test(
+        self,
+        points: torch.Tensor = None,
+        img: torch.Tensor = None,
+        img_metas: List = None,
+        gt_semantic_seg: torch.Tensor = None,
+        **kwargs
+    ):
         pts_feats, _ = self.extract_pts_feat(points)
         batch_semantic,_ = self.pts_seg_head(pts_feats) # B, cls, H, W
 
-        seg_list = [dict(pts_semantic_seg=seg)
-            for seg in _encode_onehot(batch_semantic, dim=1)]
+        seg_list = [dict(pts_seg_iou=seg_iou)
+            for seg_iou in onehot_iou_torch(
+                _encode_onehot(batch_semantic), gt_semantic_seg)]
 
         return seg_list
 
