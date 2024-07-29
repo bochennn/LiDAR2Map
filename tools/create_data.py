@@ -57,15 +57,14 @@ def nuscenes_data_prep(root_path: Path,
 
 def zdrive_data_prep(root_path: Path,
                      out_dir: Path,
-                     version: str,
-                     max_sweeps=10,
+                     info_prefix: str,
                      workers=1):
 
-    version = [
+    batch_names = [
         'E03-CITY-20240702-undownloaded',
         'NON-E03-CITY-20240702-undownloaded',
     ]
-    zdrive_converter.create_zdrive_infos(root_path, version)
+    zdrive_converter.create_zdrive_infos(root_path, out_dir, info_prefix, batch_names, workers)
 
     return 
 
@@ -118,7 +117,7 @@ if __name__ == '__main__':
             nuscenes_data_prep(
                 root_path=args.root_path,
                 out_dir=args.out_dir,
-                info_prefix=args.extra_tag,
+                info_prefix=args.dataset,
                 version=train_version,
                 dataset_name='NuScenesDataset',
                 max_sweeps=args.max_sweeps)
@@ -126,8 +125,7 @@ if __name__ == '__main__':
         zdrive_data_prep(
             root_path=args.root_path,
             out_dir=args.out_dir,
-            version=args.version,
-            max_sweeps=args.max_sweeps,
+            info_prefix=args.dataset,
             workers=args.workers)
     else:
         raise NotImplementedError(f'Don\'t support {args.dataset} dataset.')
