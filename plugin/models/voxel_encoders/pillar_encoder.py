@@ -1,16 +1,14 @@
 import torch
 import torch.nn as nn
 import torch_scatter
-from mmcv.runner import force_fp32
 from mmdet3d.models.voxel_encoders.pillar_encoder import DynamicPillarFeatureNet as _DynamicPillarFeatureNet
 from mmdet3d.models.builder import VOXEL_ENCODERS
 
 from .voxel import points_to_voxels
 
+
 @VOXEL_ENCODERS.register_module(force=True)
 class DynamicPillarFeatureNet(_DynamicPillarFeatureNet):
-
-    @force_fp32(out_fp16=True)
     def forward(
         self,
         voxels: torch.Tensor,
@@ -18,12 +16,13 @@ class DynamicPillarFeatureNet(_DynamicPillarFeatureNet):
         batch_size: int,
         **kwargs
     ):
-        voxel_feats, voxel_coors = super().forward(features=voxels, coors=coors)
+        voxel_feats, voxel_coors = super(
+            DynamicPillarFeatureNet, self).forward(features=voxels, coors=coors)
 
         return dict(
             batch_size=batch_size,
-            voxel_feats=voxel_feats,
-            voxel_coors=voxel_coors
+            voxel_features=voxel_feats,
+            coors=voxel_coors
         )
 
 class PillarBlock(nn.Module):

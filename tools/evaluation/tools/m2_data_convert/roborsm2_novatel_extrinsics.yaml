@@ -1,0 +1,17 @@
+child_frame_id: rslidar_m2
+header:
+  frame_id: velodyne64
+  seq: 0
+  stamp:
+    nsecs: 0
+    secs: 0
+transform:
+  rotation:
+    x: -0.003570839465284601
+    y: -0.008788895882283447
+    z: 0.001723325361709939  
+    w: 0.9999535162018189 
+  translation:
+    x: 0.6495324358955036
+    y: -0.004994488023347435
+    z: -0.38720038058813294

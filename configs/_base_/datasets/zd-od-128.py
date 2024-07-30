@@ -63,7 +63,8 @@ data = dict(
         with_velocity=False,
         # we use box_type_3d='LiDAR' in kitti and nuscenes dataset
         # and box_type_3d='Depth' in sunrgbd and scannet dataset.
-        box_type_3d='LiDAR'),
+        box_type_3d='LiDAR',
+        use_valid_flag=True),
     val=dict(
         type=dataset_type,
         data_root=data_root,
@@ -73,7 +74,8 @@ data = dict(
         modality=input_modality,
         test_mode=True,
         with_velocity=False,
-        box_type_3d='LiDAR'))
+        box_type_3d='LiDAR',
+        use_valid_flag=True))
 # For nuScenes dataset, we usually evaluate the model at the end of training.
 # Since the models are trained by 24 epochs by default, we set evaluation
 # interval to be 24. Please change the interval accordingly if you do not

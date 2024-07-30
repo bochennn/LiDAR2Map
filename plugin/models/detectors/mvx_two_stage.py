@@ -41,6 +41,18 @@ class MVXTwoStageDetector(_MVXTwoStageDetector):
         voxel_dict['batch_size'] = len(points)
         return voxel_dict
 
+    def extract_pts_feat(self, pts: List[torch.Tensor], img_feats, img_metas):
+        """Extract features of points."""
+        if not self.with_pts_bbox:
+            return None
+        voxel_dict = self.voxelize(pts)
+        feats_dict = self.pts_voxel_encoder(**voxel_dict)
+        pts_middle_feature = self.pts_middle_encoder(**feats_dict)
+        pts_feature = self.pts_backbone(pts_middle_feature)
+        if self.with_pts_neck:
+            pts_feature = self.pts_neck(pts_feature)
+        return pts_feature
+
     def forward_test(
         self,
         points: torch.Tensor = None,
@@ -52,7 +64,7 @@ class MVXTwoStageDetector(_MVXTwoStageDetector):
         img_feats, pts_feats = self.extract_feat(
             points, img=img, img_metas=img_metas)
 
-        bbox_list = [dict() for i in range(len(img_metas))]
+        bbox_list = [dict() for _ in range(len(img_metas))]
         if pts_feats and self.with_pts_bbox:
             bbox_pts = self.simple_test_pts(
                 pts_feats, img_metas, rescale=rescale)

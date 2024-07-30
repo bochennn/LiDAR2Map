@@ -1,0 +1,860 @@
+[
+    {
+        "measure_timestamp": 1660121818.202000,
+        "track_id": 2,
+        "obj_id": 2,
+        "obj_type": null,
+        "obj_sub_type": 3,
+        "category": "Car",
+        "obj_score": 1,
+        "psr": {
+            "position": {
+                "x": 6.04461,
+                "y": 27.4456,
+                "z": -2.4346499999999995
+            },
+            "scale": {
+                "x": 4.344,
+                "y": 1.864,
+                "z": 1.464
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": -1.485130433994752
+            }
+        }
+    },
+    {
+        "measure_timestamp": 1660121818.202000,
+        "track_id": 3,
+        "obj_id": 3,
+        "obj_type": null,
+        "obj_sub_type": 3,
+        "category": "Car",
+        "obj_score": 1,
+        "psr": {
+            "position": {
+                "x": 5.78057,
+                "y": 37.8025,
+                "z": -2.4980900000000004
+            },
+            "scale": {
+                "x": 4.562,
+                "y": 1.879,
+                "z": 1.465
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": -1.4124990714662051
+            }
+        }
+    },
+    {
+        "measure_timestamp": 1660121818.202000,
+        "track_id": 4,
+        "obj_id": 4,
+        "obj_type": null,
+        "obj_sub_type": 7,
+        "category": "Cyclist",
+        "obj_score": 1,
+        "psr": {
+            "position": {
+                "x": 5.50587,
+                "y": -5.52429,
+                "z": -2.2221539999999997
+            },
+            "scale": {
+                "x": 1.878,
+                "y": 1.057,
+                "z": 1.487
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": -0.25647644569977707
+            }
+        }
+    },
+    {
+        "measure_timestamp": 1660121818.202000,
+        "track_id": 5,
+        "obj_id": 5,
+        "obj_type": null,
+        "obj_sub_type": 3,
+        "category": "Car",
+        "obj_score": 1,
+        "psr": {
+            "position": {
+                "x": 6.74747,
+                "y": -10.7847,
+                "z": -2.206711
+            },
+            "scale": {
+                "x": 4.271,
+                "y": 1.812,
+                "z": 1.454
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": -1.3016197949811865
+            }
+        }
+    },
+    {
+        "measure_timestamp": 1660121818.202000,
+        "track_id": 7,
+        "obj_id": 7,
+        "obj_type": null,
+        "obj_sub_type": 7,
+        "category": "Cyclist",
+        "obj_score": 1,
+        "psr": {
+            "position": {
+                "x": 8.19442,
+                "y": 33.2964,
+                "z": -2.151397
+            },
+            "scale": {
+                "x": 1.727,
+                "y": 0.712,
+                "z": 1.604
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": -1.5144600103976589
+            }
+        }
+    },
+    {
+        "measure_timestamp": 1660121818.202000,
+        "track_id": 8,
+        "obj_id": 8,
+        "obj_type": null,
+        "obj_sub_type": 10,
+        "category": "Person",
+        "obj_score": 1,
+        "psr": {
+            "position": {
+                "x": 0.62994,
+                "y": 16.0318,
+                "z": -2.29711
+            },
+            "scale": {
+                "x": 0.412,
+                "y": 0.863,
+                "z": 1.712
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": -1.2765900637409875
+            }
+        }
+    },
+    {
+        "measure_timestamp": 1660121818.202000,
+        "track_id": 9,
+        "obj_id": 9,
+        "obj_type": null,
+        "obj_sub_type": 10,
+        "category": "Person",
+        "obj_score": 1,
+        "psr": {
+            "position": {
+                "x": -1.32525,
+                "y": 27.2739,
+                "z": -2.5030799999999997
+            },
+            "scale": {
+                "x": 0.702,
+                "y": 0.661,
+                "z": 1.67
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": -1.512058775338747
+            }
+        }
+    },
+    {
+        "measure_timestamp": 1660121818.202000,
+        "track_id": 10,
+        "obj_id": 10,
+        "obj_type": null,
+        "obj_sub_type": 3,
+        "category": "Car",
+        "obj_score": 1,
+        "psr": {
+            "position": {
+                "x": -8.1584,
+                "y": -0.215331,
+                "z": -2.34209
+            },
+            "scale": {
+                "x": 4.695,
+                "y": 1.918,
+                "z": 1.467
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0.10157771242395969
+            }
+        }
+    },
+    {
+        "measure_timestamp": 1660121818.202000,
+        "track_id": 11,
+        "obj_id": 11,
+        "obj_type": null,
+        "obj_sub_type": 3,
+        "category": "Car",
+        "obj_score": 1,
+        "psr": {
+            "position": {
+                "x": -18.6454,
+                "y": -1.06353,
+                "z": -2.11234
+            },
+            "scale": {
+                "x": 4.632,
+                "y": 1.808,
+                "z": 1.505
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0.11447645958442217
+            }
+        }
+    },
+    {
+        "measure_timestamp": 1660121818.202000,
+        "track_id": 12,
+        "obj_id": 12,
+        "obj_type": null,
+        "obj_sub_type": 3,
+        "category": "Car",
+        "obj_score": 1,
+        "psr": {
+            "position": {
+                "x": -27.2143,
+                "y": -2.431,
+                "z": -2.29652
+            },
+            "scale": {
+                "x": 4.212,
+                "y": 1.808,
+                "z": 1.66
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": -0.0669324894157048
+            }
+        }
+    },
+    {
+        "measure_timestamp": 1660121818.202000,
+        "track_id": 13,
+        "obj_id": 13,
+        "obj_type": null,
+        "obj_sub_type": 11,
+        "category": "Cone",
+        "obj_score": 1,
+        "psr": {
+            "position": {
+                "x": 0.036057,
+                "y": -2.13471,
+                "z": -3.26404
+            },
+            "scale": {
+                "x": 0.323,
+                "y": 0.359,
+                "z": 0.651
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0.1252898763441202
+            }
+        }
+    },
+    {
+        "measure_timestamp": 1660121818.202000,
+        "track_id": 14,
+        "obj_id": 14,
+        "obj_type": null,
+        "obj_sub_type": 11,
+        "category": "Cone",
+        "obj_score": 1,
+        "psr": {
+            "position": {
+                "x": -0.461771,
+                "y": -1.96542,
+                "z": -3.29253
+            },
+            "scale": {
+                "x": 0.323,
+                "y": 0.359,
+                "z": 0.651
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0.1252898763441202
+            }
+        }
+    },
+    {
+        "measure_timestamp": 1660121818.202000,
+        "track_id": 15,
+        "obj_id": 15,
+        "obj_type": null,
+        "obj_sub_type": 11,
+        "category": "Cone",
+        "obj_score": 1,
+        "psr": {
+            "position": {
+                "x": -2.4257,
+                "y": -2.24554,
+                "z": -3.28478
+            },
+            "scale": {
+                "x": 0.323,
+                "y": 0.359,
+                "z": 0.651
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0.1252898763441202
+            }
+        }
+    },
+    {
+        "measure_timestamp": 1660121818.202000,
+        "track_id": 16,
+        "obj_id": 16,
+        "obj_type": null,
+        "obj_sub_type": 11,
+        "category": "Cone",
+        "obj_score": 1,
+        "psr": {
+            "position": {
+                "x": -4.27733,
+                "y": -2.33039,
+                "z": -3.22781
+            },
+            "scale": {
+                "x": 0.323,
+                "y": 0.359,
+                "z": 0.651
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0.1252898763441202
+            }
+        }
+    },
+    {
+        "measure_timestamp": 1660121818.202000,
+        "track_id": 17,
+        "obj_id": 17,
+        "obj_type": null,
+        "obj_sub_type": 11,
+        "category": "Cone",
+        "obj_score": 1,
+        "psr": {
+            "position": {
+                "x": -6.10699,
+                "y": -2.5813,
+                "z": -3.1808199999999998
+            },
+            "scale": {
+                "x": 0.323,
+                "y": 0.359,
+                "z": 0.651
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0.1252898763441202
+            }
+        }
+    },
+    {
+        "measure_timestamp": 1660121818.202000,
+        "track_id": 18,
+        "obj_id": 18,
+        "obj_type": null,
+        "obj_sub_type": 11,
+        "category": "Cone",
+        "obj_score": 1,
+        "psr": {
+            "position": {
+                "x": -7.24345,
+                "y": -4.08569,
+                "z": -3.0715700000000004
+            },
+            "scale": {
+                "x": 0.323,
+                "y": 0.359,
+                "z": 0.651
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0.1252898763441202
+            }
+        }
+    },
+    {
+        "measure_timestamp": 1660121818.202000,
+        "track_id": 19,
+        "obj_id": 19,
+        "obj_type": null,
+        "obj_sub_type": 11,
+        "category": "Cone",
+        "obj_score": 1,
+        "psr": {
+            "position": {
+                "x": 0.324938,
+                "y": -2.21257,
+                "z": -3.1496199999999996
+            },
+            "scale": {
+                "x": 0.224,
+                "y": 0.221,
+                "z": 0.801
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0.1252898763441202
+            }
+        }
+    },
+    {
+        "measure_timestamp": 1660121818.202000,
+        "track_id": 20,
+        "obj_id": 20,
+        "obj_type": null,
+        "obj_sub_type": 11,
+        "category": "Cone",
+        "obj_score": 1,
+        "psr": {
+            "position": {
+                "x": 0.782092,
+                "y": 3.76911,
+                "z": -3.24054
+            },
+            "scale": {
+                "x": 0.224,
+                "y": 0.221,
+                "z": 0.778
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0.1252898763441202
+            }
+        }
+    },
+    {
+        "measure_timestamp": 1660121818.202000,
+        "track_id": 21,
+        "obj_id": 21,
+        "obj_type": null,
+        "obj_sub_type": 11,
+        "category": "Cone",
+        "obj_score": 1,
+        "psr": {
+            "position": {
+                "x": 1.90892,
+                "y": 3.64723,
+                "z": -3.1971999999999996
+            },
+            "scale": {
+                "x": 0.224,
+                "y": 0.221,
+                "z": 0.778
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0.1252898763441202
+            }
+        }
+    },
+    {
+        "measure_timestamp": 1660121818.202000,
+        "track_id": 22,
+        "obj_id": 22,
+        "obj_type": null,
+        "obj_sub_type": 11,
+        "category": "Cone",
+        "obj_score": 1,
+        "psr": {
+            "position": {
+                "x": 0.477607,
+                "y": 7.0227,
+                "z": -3.1971999999999996
+            },
+            "scale": {
+                "x": 0.224,
+                "y": 0.221,
+                "z": 0.778
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0.1252898763441202
+            }
+        }
+    },
+    {
+        "measure_timestamp": 1660121818.202000,
+        "track_id": 23,
+        "obj_id": 23,
+        "obj_type": null,
+        "obj_sub_type": 11,
+        "category": "Cone",
+        "obj_score": 1,
+        "psr": {
+            "position": {
+                "x": -1.12611,
+                "y": 6.89595,
+                "z": -3.28026
+            },
+            "scale": {
+                "x": 0.224,
+                "y": 0.221,
+                "z": 0.778
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0.1252898763441202
+            }
+        }
+    },
+    {
+        "measure_timestamp": 1660121818.202000,
+        "track_id": 24,
+        "obj_id": 24,
+        "obj_type": null,
+        "obj_sub_type": 11,
+        "category": "Cone",
+        "obj_score": 1,
+        "psr": {
+            "position": {
+                "x": -2.64395,
+                "y": 6.80869,
+                "z": -3.28026
+            },
+            "scale": {
+                "x": 0.224,
+                "y": 0.221,
+                "z": 0.778
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0.027622888589090292
+            }
+        }
+    },
+    {
+        "measure_timestamp": 1660121818.202000,
+        "track_id": 25,
+        "obj_id": 25,
+        "obj_type": null,
+        "obj_sub_type": 11,
+        "category": "Cone",
+        "obj_score": 1,
+        "psr": {
+            "position": {
+                "x": -3.47224,
+                "y": 8.11688,
+                "z": -3.28026
+            },
+            "scale": {
+                "x": 0.357,
+                "y": 0.244,
+                "z": 0.778
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0.027622888589090292
+            }
+        }
+    },
+    {
+        "measure_timestamp": 1660121818.202000,
+        "track_id": 26,
+        "obj_id": 26,
+        "obj_type": null,
+        "obj_sub_type": 3,
+        "category": "Car",
+        "obj_score": 1,
+        "psr": {
+            "position": {
+                "x": -9.10639,
+                "y": -57.1305,
+                "z": -1.2381739999999999
+            },
+            "scale": {
+                "x": 4.256,
+                "y": 1.864,
+                "z": 1.474
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": -2.971291001436772
+            }
+        }
+    },
+    {
+        "measure_timestamp": 1660121818.202000,
+        "track_id": 27,
+        "obj_id": 27,
+        "obj_type": null,
+        "obj_sub_type": 3,
+        "category": "Car",
+        "obj_score": 1,
+        "psr": {
+            "position": {
+                "x": 34.9389,
+                "y": -29.8476,
+                "z": -0.3097589999999999
+            },
+            "scale": {
+                "x": 4.218,
+                "y": 1.855,
+                "z": 1.459
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0.10215643606880531
+            }
+        }
+    },
+    {
+        "measure_timestamp": 1660121818.202000,
+        "track_id": 37,
+        "obj_id": 37,
+        "obj_type": null,
+        "obj_sub_type": 3,
+        "category": "Car",
+        "obj_score": 1,
+        "psr": {
+            "position": {
+                "x": -60.4757,
+                "y": -11.4686,
+                "z": -4.133590000000001
+            },
+            "scale": {
+                "x": 4.677,
+                "y": 1.826,
+                "z": 1.414
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 1.6325602744524945
+            }
+        }
+    },
+    {
+        "measure_timestamp": 1660121818.202000,
+        "track_id": 38,
+        "obj_id": 38,
+        "obj_type": null,
+        "obj_sub_type": 3,
+        "category": "Car",
+        "obj_score": 1,
+        "psr": {
+            "position": {
+                "x": -63.1758,
+                "y": -11.2823,
+                "z": -4.39283
+            },
+            "scale": {
+                "x": 4.417,
+                "y": 1.826,
+                "z": 1.414
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 1.607979336742316
+            }
+        }
+    },
+    {
+        "measure_timestamp": 1660121818.202000,
+        "track_id": 39,
+        "obj_id": 39,
+        "obj_type": null,
+        "obj_sub_type": 3,
+        "category": "Car",
+        "obj_score": 1,
+        "psr": {
+            "position": {
+                "x": -67.9906,
+                "y": -11.1194,
+                "z": -4.1729400000000005
+            },
+            "scale": {
+                "x": 4.417,
+                "y": 1.826,
+                "z": 1.716
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 1.5588203962144789
+            }
+        }
+    },
+    {
+        "measure_timestamp": 1660121818.202000,
+        "track_id": 42,
+        "obj_id": 42,
+        "obj_type": null,
+        "obj_sub_type": 3,
+        "category": "Car",
+        "obj_score": 1,
+        "psr": {
+            "position": {
+                "x": 34.3473,
+                "y": -1.57556,
+                "z": -0.12239
+            },
+            "scale": {
+                "x": 4.266,
+                "y": 1.805,
+                "z": 1.541
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": -3.039440276231767
+            }
+        }
+    },
+    {
+        "measure_timestamp": 1660121818.202000,
+        "track_id": 43,
+        "obj_id": 43,
+        "obj_type": null,
+        "obj_sub_type": 3,
+        "category": "Car",
+        "obj_score": 1,
+        "psr": {
+            "position": {
+                "x": 33.7273,
+                "y": 3.90744,
+                "z": -0.036680000000000046
+            },
+            "scale": {
+                "x": 4.502,
+                "y": 1.805,
+                "z": 1.633
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": -3.039440276231767
+            }
+        }
+    },
+    {
+        "measure_timestamp": 1660121818.202000,
+        "track_id": 52,
+        "obj_id": 52,
+        "obj_type": null,
+        "obj_sub_type": 7,
+        "category": "Cyclist",
+        "obj_score": 1,
+        "psr": {
+            "position": {
+                "x": 2.54651,
+                "y": 37.271,
+                "z": -2.6084300000000002
+            },
+            "scale": {
+                "x": 1.753,
+                "y": 0.822,
+                "z": 1.706
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 1.603919289464591
+            }
+        }
+    },
+    {
+        "measure_timestamp": 1660121818.202000,
+        "track_id": 1,
+        "obj_id": 1,
+        "obj_type": null,
+        "obj_sub_type": 7,
+        "category": "Cyclist",
+        "obj_score": 1,
+        "psr": {
+            "position": {
+                "x": 11.112,
+                "y": 23.8149,
+                "z": -2.09015
+            },
+            "scale": {
+                "x": 1.847,
+                "y": 0.955,
+                "z": 1.579
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": -1.485130433994752
+            }
+        }
+    },
+    {
+        "measure_timestamp": 1660121818.202000,
+        "track_id": 6,
+        "obj_id": 6,
+        "obj_type": null,
+        "obj_sub_type": 3,
+        "category": "Car",
+        "obj_score": 1,
+        "psr": {
+            "position": {
+                "x": 11.8632,
+                "y": -29.1454,
+                "z": -1.7706560000000002
+            },
+            "scale": {
+                "x": 4.207,
+                "y": 1.812,
+                "z": 1.454
+            },
+            "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": -1.554930011001277
+            }
+        }
+    }
+]

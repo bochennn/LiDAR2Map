@@ -4,7 +4,7 @@ import torch
 from mmdet3d.models.builder import MODELS, build_head
 import torch.nn.functional as F
 
-from ...datasets.evaluate import onehot_iou_torch
+from ...datasets.map.evaluate import onehot_iou_torch
 from ..losses import feature_distill_loss, logit_distill_loss, logits_loss
 from .bevfusion import BEVFusion
 
@@ -36,17 +36,16 @@ class LiDAR2Map(BEVFusion):
 
     def extract_pts_feat(self, pts: torch.Tensor):
         """Extract features of points."""
+        if not self.with_pts_bbox:
+            return None
         voxel_dict = self.voxelize(pts)
         feats_dict = self.pts_voxel_encoder(**voxel_dict)
-        pts_middle_feature = self.pts_middle_encoder(feats_dict['voxel_feats'],
-                                                     feats_dict['voxel_coors'],
-                                                     voxel_dict['batch_size'])
+        pts_middle_feature = self.pts_middle_encoder(**feats_dict)
         pts_feature = self.pts_backbone(pts_middle_feature)
-        pts_feature = self.pts_neck(pts_feature)
-
+        if self.with_pts_neck:
+            pts_feature = self.pts_neck(pts_feature)
         if isinstance(pts_feature, list):
             pts_feature = pts_feature[0]
-
         return pts_feature, pts_middle_feature
 
     def extract_img_feat(self, img: torch.Tensor, img_metas: List):

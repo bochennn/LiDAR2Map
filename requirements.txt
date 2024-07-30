@@ -7,3 +7,7 @@ pyquaternion
 tensorboardX
 efficientnet_pytorch
 torch_scatter
+shapely==2.0.1
+pyproj
+tabulate
+geopandas

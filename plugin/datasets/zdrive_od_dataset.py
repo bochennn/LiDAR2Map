@@ -48,88 +48,84 @@ class ZDriveDataset(NuScenesDataset):
 
         return input_dict
 
-    def format_results(self, results, jsonfile_prefix=None):
-
+    def format_results(self, results: List[Dict]):
         assert isinstance(results, list), 'results must be a list'
         assert len(results) == len(self), (
             'The length of results is not equal to the dataset len: {} != {}'.
             format(len(results), len(self)))
 
-        if jsonfile_prefix is None:
-            tmp_dir = Path(tempfile.TemporaryDirectory())
-            jsonfile_prefix = tmp_dir.name / 'results'
-        else:
-            tmp_dir = None
-
+        results_dict = dict()
         for sample_id, det in enumerate(mmcv.track_iter_progress(results)):
+            pd_box3d = det['pts_bbox']['boxes_3d']
+            pd_labels = det['pts_bbox']['labels_3d'].numpy()
+            scores = det['pts_bbox']['scores_3d'].numpy()
 
-            annos = []
+            pd_box_center = pd_box3d.gravity_center.numpy()
+            pd_box_dims = pd_box3d.dims.numpy()
+            pd_box_yaw = pd_box3d.yaw.numpy()
 
-            pd_info = dict(
-                obj_id=0,
-                obj_type=0,
-                obj_sub_type=0,
-                category=self.CLASSES[0],
-                obj_score=0.8734740614891052,
-                psr=dict(
-                    position=dict(
-                        x=6.148742198944092,
-                        y=37.99754333496094,
-                        z=-1.137405972480774
-                    ),
-                    scale=dict(
-                        x=4.6380696296691895,
-                        y=1.8572767972946167,
-                        z=1.5237681865692139
-                    ),
-                    rotation=dict(
-                        x=0,
-                        y=0,
-                        z=-1.4466677904129028
-                    )
+            pd_box_list, gt_box_list = [], []
+            for i in range(len(pd_box3d)):
+                pd_box = dict(
+                    obj_id=0, obj_type=0, obj_sub_type=0,
+                    category=self.CLASSES[pd_labels[i]],
+                    obj_score=scores[i],
+                    psr=dict(
+                        position=dict(
+                            x=pd_box_center[i][0],
+                            y=pd_box_center[i][1],
+                            z=pd_box_center[i][2]),
+                        scale=dict(
+                            x=pd_box_dims[i][0],
+                            y=pd_box_dims[i][1],
+                            z=pd_box_dims[i][2]),
+                        rotation=dict(x=0, y=0, z=pd_box_yaw[i]))
                 )
-            )
+                pd_box_list.append(pd_box)
 
-            gt_info = {
-                "measure_timestamp": 1660121817.901000,
-                "track_id": 1,
-                "obj_id": 1,
-                "obj_type": 0,
-                "obj_sub_type": 7,
-                "category": "Cyclist",
-                "obj_score": 1,
-                "psr": {
-                    "position": {
-                        "x": 11.4078,
-                        "y": 25.7003,
-                        "z": -1.987002
-                    },
-                    "scale": {
-                        "x": 1.847,
-                        "y": 0.955,
-                        "z": 1.579
-                    },
-                    "rotation": {
-                        "x": 0,
-                        "y": 0,
-                        "z": -1.485130433994752
-                    }
-                }
-            }
-        return None, tmp_dir
+            anno_info = self.get_ann_info(sample_id)
+            gt_box3d = anno_info['gt_bboxes_3d']
+            gt_names = anno_info['gt_names']
+
+            gt_box_center = gt_box3d.gravity_center.numpy()
+            gt_box_dims = gt_box3d.dims.numpy()
+            gt_box_yaw = gt_box3d.yaw.numpy()
+
+            for j in range(len(gt_box3d)):
+                gt_box = dict(
+                    measure_timestamp=0, track_id=0, obj_id=0,
+                    obj_type=0, obj_sub_type=0, obj_score=1,
+                    category=gt_names[j],
+                    psr=dict(
+                        position=dict(
+                            x=gt_box_center[j][0],
+                            y=gt_box_center[j][1],
+                            z=gt_box_center[j][2]),
+                        scale=dict(
+                            x=gt_box_dims[j][0],
+                            y=gt_box_dims[j][1],
+                            z=gt_box_dims[j][2]),
+                        rotation=dict(x=0, y=0, z=gt_box_yaw[j]))
+                )
+                gt_box_list.append(gt_box)
+            results_dict[self.data_infos[sample_id]['timestamp']] = \
+                dict(pd=pd_box_list, gt=gt_box_list)
+        return results_dict
 
     def evaluate(self,
-                 results,
-                 metric='bbox',
+                 results: List[Dict],
                  logger=None,
                  jsonfile_prefix=None,
                  result_names=['pts_bbox'],
-                 show=False,
                  out_dir=None,
-                 pipeline=None):
+                 **kwargs):
 
-        result_files, tmp_dir = self.format_results(results, jsonfile_prefix)
+        results_dict = self.format_results(results, jsonfile_prefix)
 
-        results_dict = dict()
+        if jsonfile_prefix is not None:
+            mmcv.mkdir_or_exist(jsonfile_prefix)
+            res_path = f'{jsonfile_prefix}/results_zdrive_od.pkl'
+            print('Results writes to', res_path)
+            mmcv.dump(results_dict, res_path)
 
         return results_dict

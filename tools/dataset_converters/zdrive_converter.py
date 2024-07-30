@@ -52,11 +52,12 @@ def create_zdrive_infos(root_path: Path, out_dir: Path, info_prefix: str,
         nprocess=workers)
 
     train_zd_infos, val_zd_infos = [], []
-    for info in info_list:
-        if info['scene_name'] in val_scenes:
-            val_zd_infos.append(info)
-        else:
-            train_zd_infos.append(info)
+    for sub_info_list in info_list:
+        for info in sub_info_list:
+            if info['scene_name'] in val_scenes:
+                val_zd_infos.append(info)
+            else:
+                train_zd_infos.append(info)
 
     metadata = dict(version='')
     print('train sample: {}, val sample: {}'.format(
@@ -75,7 +76,6 @@ def _fill_trainval_infos(clip_root: Path, max_sweeps: int = 10, progressbar: str
     # from visualization import show_o3d
     # from common.fileio import read_points_pcd
 
-    # for clip_root in tqdm(available_clips):
     imu2lidar_dict = yaml.safe_load((clip_root / LIDAR2IMU_FILEPATH).read_text())
     imu2lidar = transform_matrix(
         list(imu2lidar_dict['transform']['translation'].values()),
@@ -87,24 +87,12 @@ def _fill_trainval_infos(clip_root: Path, max_sweeps: int = 10, progressbar: str
     ann_path = clip_root / 'annotation' / \
         [p for p in OD_ANNOTATION_PREFIX if (clip_root / 'annotation' / p).exists()][0]
     clip_info = json.loads(list(ann_path.glob('clip_*.json'))[0].read_text())
-    # ref2global = None
 
     frame_indices = np.argsort([f['frame_name'] for f in clip_info['frames']])
-    info_list, pts_list, box_list = [], [], []
+    info_list, pts_list, box_list, ref2global = [], [], [], None
 
     for frame_indx in tqdm(frame_indices, desc=progressbar):
         frame_info = clip_info['frames'][frame_indx]
-
-        closest_ind = np.fabs(pose_timestamps - frame_info['lidar_collect'] * 1e-6).argmin()
-
-        global2imu = transform_matrix(
-            list(pose_record[closest_ind]['pose']['position'].values()),
-            Rotation.from_quat([
-                pose_record[closest_ind]['pose']['orientation']['qx'],
-                pose_record[closest_ind]['pose']['orientation']['qy'],
-                pose_record[closest_ind]['pose']['orientation']['qz'],
-                pose_record[closest_ind]['pose']['orientation']['qw']]).as_matrix())
-
         out_info = {
             'token': frame_info['frame_id'],
             'frame_name': frame_info['frame_name'],
@@ -147,7 +135,15 @@ def _fill_trainval_infos(clip_root: Path, max_sweeps: int = 10, progressbar: str
             )
             out_info['lidars'].update({lidar_token: lidar_info})
 
-        # points = read_points_pcd(out_info['lidars']['lidar0']['filename'])
+        closest_ind = np.fabs(pose_timestamps - out_info['timestamp']).argmin()
+        global2imu = transform_matrix(
+            list(pose_record[closest_ind]['pose']['position'].values()),
+            Rotation.from_quat([
+                pose_record[closest_ind]['pose']['orientation']['qx'],
+                pose_record[closest_ind]['pose']['orientation']['qy'],
+                pose_record[closest_ind]['pose']['orientation']['qz'],
+                pose_record[closest_ind]['pose']['orientation']['qw']]).as_matrix())
+
         lidar2ego = transform_matrix(
             out_info['lidars']['lidar0']['sensor2ego_translation'],
             out_info['lidars']['lidar0']['sensor2ego_rotation']
@@ -165,6 +161,7 @@ def _fill_trainval_infos(clip_root: Path, max_sweeps: int = 10, progressbar: str
         #     ref2global = ego2global
         # ego2ref = transform_offset(ego2global, ref2global)
 
+        # points = read_points_pcd(out_info['lidars']['lidar0']['filename'])
         # points = convert_points(points, ego2ref @ lidar2ego)
         # pts_list.append(points)
 
@@ -185,12 +182,13 @@ def _fill_trainval_infos(clip_root: Path, max_sweeps: int = 10, progressbar: str
         out_info['gt_names'] = np.array([a['category'] for a in od_ann_info])
         out_info['track_ids'] = np.array([a['track_id'] for a in od_ann_info])
         out_info['num_lidar_pts'] = np.array([a['num_lidar_pts'] for a in od_ann_info])
+        out_info['valid_flag'] = np.array([a['num_lidar_pts'] > 0 and a['category'] != 'unknown'
+                 for a in od_ann_info], dtype=bool)
 
         # box_list.append(out_info['gt_boxes'])
         info_list.append(out_info)
         # show_o3d([pts_list[0]], [{'box3d': box_list[0]}])
         # show_o3d([np.vstack(pts_list)], [{'box3d': np.vstack(box_list)}])
-    # progressbar.update()
     return info_list
 
 
