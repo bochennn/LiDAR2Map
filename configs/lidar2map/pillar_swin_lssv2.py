@@ -1,6 +1,6 @@
 _base_ = [
     '../_base_/default_runtime.py', '../_base_/schedules/cosine.py',
-    '../_base_/datasets/nus-3d.py'
+    '../_base_/datasets/nusc-mapseg.py'
 ]
 custom_imports = dict(
     imports=['plugin.models.detectors.lidar2map'],

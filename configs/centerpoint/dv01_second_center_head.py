@@ -1,6 +1,6 @@
 _base_ = [
     '../_base_/schedules/cosine.py', '../_base_/default_runtime.py',
-    '../_base_/datasets/zd-128.py'
+    '../_base_/datasets/zd-od-128.py'
 ]
 custom_imports = dict(
     imports=['plugin.models.detectors.centerpoint'],
@@ -35,7 +35,7 @@ model = dict(
         encoder_paddings=((0, 0, 1), (0, 0, 1), (0, 0, [0, 1, 1]), (0, 0)),
         block_type='basicblock'),
     pts_backbone=dict(
-        type='SECONDSCConvNeXt',
+        type='SECOND',
         in_channels=256,
         out_channels=[128, 256],
         layer_nums=[5, 5],
@@ -105,8 +105,9 @@ model = dict(
 
 train_pipeline = [
     dict(type='LoadPointsFromFile',
-         load_dim=4, use_dim=4, coord_type='LIDAR'),
-    dict(type='LoadAnnotations3D', with_bbox_3d=True, with_label_3d=True),
+         load_dim=4, use_dim=4, convert_ego=True),
+    dict(type='LoadAnnotations3D',
+         with_bbox_3d=True, with_label_3d=True),
     dict(type='PointsRangeFilter', point_cloud_range=pts_range),
     dict(type='DefaultFormatBundle3D', class_names=class_names),
     dict(type='Collect3D', keys=['points', 'gt_bboxes_3d', 'gt_labels_3d'])
@@ -114,8 +115,9 @@ train_pipeline = [
 
 eval_pipeline = [
     dict(type='LoadPointsFromFile',
-         load_dim=4, use_dim=4, coord_type='LIDAR'),
-    dict(type='LoadAnnotations3D', with_bbox_3d=True, with_label_3d=True),
+         load_dim=4, use_dim=4, convert_ego=True),
+    dict(type='LoadAnnotations3D',
+         with_bbox_3d=True, with_label_3d=True),
     dict(type='PointsRangeFilter', point_cloud_range=pts_range),
     dict(type='DefaultFormatBundle3D', class_names=class_names),
     dict(type='Collect3D', keys=['points'])

@@ -18,6 +18,15 @@ from ...utils import convert_points, rasterize_map, read_points_pcd
 @PIPELINES.register_module(force=True)
 class LoadPointsFromFile(_LoadPointsFromFile):
 
+    def __init__(
+        self,
+        convert_ego: bool = False,
+        coord_type: str = 'LIDAR',
+        **kwargs
+    ):
+        super(LoadPointsFromFile, self).__init__(coord_type=coord_type, **kwargs)
+        self.convert_ego = convert_ego
+
     def _load_points(self, pts_filename):
         """Private function to load point clouds data.
 
@@ -78,7 +87,8 @@ class LoadPointsFromFile(_LoadPointsFromFile):
                     points.shape[1] - 1,
                 ]))
 
-        points = convert_points(points, results['lidar2ego'])
+        if 'lidar2ego' in results and self.convert_ego:
+            points = convert_points(points, results['lidar2ego'])
         points_class = get_points_type(self.coord_type)
         points = points_class(
             points, points_dim=points.shape[-1], attribute_dims=attribute_dims)

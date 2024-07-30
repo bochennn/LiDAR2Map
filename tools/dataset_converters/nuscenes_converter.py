@@ -6,11 +6,11 @@ from typing import List, Tuple, Union
 
 import mmcv
 import numpy as np
-from local_map.nuscenes_map import VectorizedLocalMap
 from mmdet3d.core.bbox import points_cam2img
 from mmdet3d.datasets import NuScenesDataset
 from nuscenes.nuscenes import NuScenes
 from nuscenes.utils.geometry_utils import view_points
+from plugin.datasets.map.nusc_map import VectorizedLocalMap
 from pyquaternion import Quaternion
 from shapely.geometry import MultiPoint, box
 

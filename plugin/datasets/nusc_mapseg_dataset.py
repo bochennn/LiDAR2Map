@@ -5,11 +5,9 @@ import numpy as np
 from mmdet3d.datasets.builder import DATASETS
 from mmdet3d.datasets.nuscenes_dataset import NuScenesDataset
 
-# from .evaluate import onehot_iou_numpy
-
 
 @DATASETS.register_module()
-class NuScenesSegmentDataset(NuScenesDataset):
+class NuScenesMapSegmentDataset(NuScenesDataset):
 
     def prepare_train_data(self, index: int) -> Dict:
         """Training data preparation.
