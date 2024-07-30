@@ -4,9 +4,9 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 
-from objects.obstacle.parsers.attribute_tool import Attr
-from utils.pointcloud_ops import load_bin, points_crop
-from tools.datasets_tool.data_distribution_statistic import data_statistics
+from ....objects.obstacle.parsers.attribute_tool import Attr
+from ....tools.datasets_tool.data_distribution_statistic import data_statistics
+from ....utils.pointcloud_ops import load_bin, points_crop
 
 
 class ObstacleSampleDistribution:

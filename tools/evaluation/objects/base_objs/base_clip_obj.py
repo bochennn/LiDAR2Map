@@ -3,8 +3,8 @@ import uuid
 
 import pandas as pd
 
-from objects.obstacle.parsers.attribute_tool import ts_round
-from log_mgr import logger
+from ..obstacle.parsers.attribute_tool import ts_round
+from ...log_mgr import logger
 
 
 class ClipBase(ABC):

@@ -1,10 +1,12 @@
 import pandas as pd
+
+from ...utils.transform import ll2utm, quaternion_to_euler
+from ..base_objs.base_clip_obj import ClipBase
+from .attribute_name import Attr
+from .ego_instant_obj import EgoInstantObj
+
 # from cyber_record.record import Record
 
-from utils.transform import quaternion_to_euler, ll2utm
-from objects.base_objs.base_clip_obj import ClipBase
-from objects.ego.ego_instant_obj import EgoInstantObj
-from objects.ego.attribute_name import Attr
 
 
 class EgoClip(ClipBase):

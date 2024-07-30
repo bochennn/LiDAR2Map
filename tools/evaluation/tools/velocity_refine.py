@@ -1,24 +1,24 @@
 import os
-import simplejson as json
 import pickle
-from functools import partial
+# import time
 from collections import OrderedDict
-import time
+from functools import partial
 
-import seaborn as sns
-import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import simplejson as json
 
-from objects.obstacle.objs.obstacle_clip_pred import ObstacleClipPred
-from tasks.eval_tasks.match_tasks.obstacle_matcher import Matcher
-from tasks.eval_tasks.sub_tasks.obstacle_eval_tracking import ObstacleEvalTrack
-from objects.obstacle.parsers.attribute_tool import Attr
-from objects.obstacle.objs.obstacle_match_obj import ObstacleMatchObj
-from utils.plot import get_ax4
-from utils.transform import vector_transform
-from log_mgr import logger
-
+# from log_mgr import logger
+from ..objects.obstacle.objs.obstacle_clip_pred import ObstacleClipPred
+from ..objects.obstacle.objs.obstacle_match_obj import ObstacleMatchObj
+from ..objects.obstacle.parsers.attribute_tool import Attr
+from ..tasks.eval_tasks.match_tasks.obstacle_matcher import Matcher
+from ..tasks.eval_tasks.sub_tasks.obstacle_eval_tracking import \
+    ObstacleEvalTrack
+from ..utils.plot import get_ax4
+from ..utils.transform import vector_transform
 
 threshold_map = {"iou": {"Bus": 0.3,
                          "Car": 0.5,

@@ -2,10 +2,11 @@ import os
 from collections import OrderedDict
 
 import numpy as np
-from objects.base_objs.base_clip_obj import ClipBase
-from cyber_record.record import Record
+# from cyber_record.record import Record
 import open3d as o3d
-from utils.pointcloud_ops import load_bin, numpy_to_bin, load_pcd, numpy_to_pcd
+
+from ....utils.pointcloud_ops import load_bin, load_pcd
+from ...base_objs.base_clip_obj import ClipBase
 
 
 class ObstacleClipPointCloud(ClipBase):

@@ -1,9 +1,10 @@
 import os
 from abc import ABC
-import simplejson as json
 from collections import OrderedDict
 
-from log_mgr import logger
+import simplejson as json
+
+from ...log_mgr import logger
 
 
 class EvalBase(ABC):

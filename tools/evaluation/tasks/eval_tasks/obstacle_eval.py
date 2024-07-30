@@ -1,20 +1,20 @@
 # import shutil
 from functools import partial
 
-from tasks.eval_tasks.eval_base import EvalBase
-from objects.obstacle.objs.obstacle_match_obj import ObstacleMatchObj
-from utils import timeit
-from objects.obstacle.objs.obstacle_clip_gt import ObstacleClipGt
-from objects.obstacle.objs.obstacle_clip_pred import ObstacleClipPred
-# from objects.obstacle.objs.obstacle_point_cloud_obj import ObstacleClipPointCloud
-from tasks.eval_tasks.sub_tasks.obstacle_eval_tracking import ObstacleEvalTrack
-from tasks.eval_tasks.sub_tasks.obstacle_eval_bbox import ObstacleEvalBbox
-from tasks.eval_tasks.match_tasks.obstacle_matcher import Matcher, FrameMatchStatus
-from tasks.eval_tasks.sub_tasks.obstacle_eval_visualization import ObstacleFailedVisual
+from ...log_mgr import logger
+from ...objects.obstacle.objs.obstacle_clip_gt import ObstacleClipGt
+from ...objects.obstacle.objs.obstacle_clip_pred import ObstacleClipPred
+from ...objects.obstacle.objs.obstacle_match_obj import ObstacleMatchObj
+from ...utils import timeit
+from ..eval_tasks.eval_base import EvalBase
+from ..eval_tasks.match_tasks.obstacle_matcher import FrameMatchStatus, Matcher
+from ..eval_tasks.sub_tasks.obstacle_eval_bbox import ObstacleEvalBbox
 # from tasks.qa_tasks.annotation_qa import AnnotationQa
 # from tasks.corner_case_task.heading_obnormal_case import HeadingAbnormalChecker
-from tasks.eval_tasks.sub_tasks.obstacle_eval_data_distribution import ObstacleSampleDistribution
-from log_mgr import logger
+from ..eval_tasks.sub_tasks.obstacle_eval_data_distribution import ObstacleSampleDistribution
+# from objects.obstacle.objs.obstacle_point_cloud_obj import ObstacleClipPointCloud
+from ..eval_tasks.sub_tasks.obstacle_eval_tracking import ObstacleEvalTrack
+from ..eval_tasks.sub_tasks.obstacle_eval_visualization import ObstacleFailedVisual
 
 
 class ObstacleEval(EvalBase):
@@ -93,7 +93,7 @@ class ObstacleEval(EvalBase):
     def run(self):
         self.match_pair_list = self.get_match_pairs()
         logger.info("number of match pairs: {}".format(len(self.match_pair_list)))
-        self.evaluating_bbox()
+        self.bbox_eval_result = self.evaluating_bbox()
         self.evaluating_track()
         if self.failed_sample_vis:
             self.visualize_failed_samples()

@@ -5,7 +5,7 @@ from collections import defaultdict
 import numpy as np
 import cv2
 
-from objects.calib.calibration_mgr import CalibMeta
+from ..calib.calibration_mgr import CalibMeta
 
 
 def get_img_size(img_path):

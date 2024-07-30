@@ -1,9 +1,7 @@
-import tempfile
-from pathlib import Path
 from typing import Dict, List
 
+from logging import Logger
 import mmcv
-import numpy as np
 from mmdet3d.datasets.builder import DATASETS
 from mmdet3d.datasets.nuscenes_dataset import NuScenesDataset
 
@@ -12,6 +10,20 @@ from ..utils import transform_matrix
 
 @DATASETS.register_module()
 class ZDriveDataset(NuScenesDataset):
+    NameMapping = {
+        'car': 'Car',
+        'bus': 'Bus',
+        'Van': 'Bus',
+        'tricycle': 'Cyclist',
+        'motorcycle': 'Cyclist',
+        'bicycle': 'Cyclist',
+        'person': 'Person',
+        'traffic_cone': 'Cone',
+        'truck': 'Truck',
+        'pickup_truck': 'Truck',
+        'construction_vehicle': 'Truck',
+        'unknown': 'Unknown'
+    }
 
     def get_data_info(self, index):
         """Get data info according to the given index.
@@ -109,23 +121,37 @@ class ZDriveDataset(NuScenesDataset):
                 )
                 gt_box_list.append(gt_box)
             results_dict[self.data_infos[sample_id]['timestamp']] = \
-                dict(pd=pd_box_list, gt=gt_box_list)
+                dict(pred=pd_box_list, gt=gt_box_list)
         return results_dict
 
     def evaluate(self,
                  results: List[Dict],
-                 logger=None,
-                 jsonfile_prefix=None,
-                 result_names=['pts_bbox'],
-                 out_dir=None,
+                 logger: Logger = None,
+                 jsonfile_prefix: str = None,
+                 result_names: List = ['pts_bbox'],
+                 out_dir: str = None,
                  **kwargs):
 
-        results_dict = self.format_results(results, jsonfile_prefix)
+        results_dict = self.format_results(results)
 
         if jsonfile_prefix is not None:
             mmcv.mkdir_or_exist(jsonfile_prefix)
             res_path = f'{jsonfile_prefix}/results_zdrive_od.pkl'
-            print('Results writes to', res_path)
+            logger.info('Results writes to', res_path)
             mmcv.dump(results_dict, res_path)
 
-        return results_dict
+        from tools.evaluation.tasks import ObstacleEval
+        from tools.evaluation.config import ConfigParser
+        config = ConfigParser.parse('3d_object')
+        config.update(process_num=8,
+                      gt_data_path=results_dict,
+                      pred_data_path=results_dict)
+        od_eval = ObstacleEval(config)
+        od_eval.start()
+
+        eval_metrics = dict()
+        for cat_id in range(len(od_eval.category)):
+            eval_metrics[f'AP@50/{od_eval.category[cat_id]}'] = od_eval.bbox_eval_result[
+                cat_id + cat_id * len(od_eval.distance)]['AP@50']
+
+        return eval_metrics

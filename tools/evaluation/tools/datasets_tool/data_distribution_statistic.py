@@ -6,9 +6,9 @@ import pandas as pd
 import seaborn as sns
 from matplotlib.gridspec import GridSpec
 
-from objects.obstacle.objs.obstacle_clip_gt import ObstacleClipGt
-from objects.obstacle.parsers.attribute_tool import Attr
-from utils.plot import polar_histogram, histogram_2d_sns, polar_histogram_core
+from ...objects.obstacle.objs.obstacle_clip_gt import ObstacleClipGt
+from ...objects.obstacle.parsers.attribute_tool import Attr
+from ...utils.plot import polar_histogram, histogram_2d_sns, polar_histogram_core
 
 
 def wrap_yaw(yaw):

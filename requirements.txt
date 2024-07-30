@@ -7,7 +7,8 @@ pyquaternion
 tensorboardX
 efficientnet_pytorch
 torch_scatter
-shapely==2.0.1
+# shapely==2.0.1
+shapely==1.8.5
 pyproj
 tabulate
 geopandas

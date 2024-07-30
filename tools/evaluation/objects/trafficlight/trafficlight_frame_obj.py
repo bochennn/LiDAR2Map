@@ -1,5 +1,5 @@
-from objects.base_objs.base_frame_obj import FrameBase
-from objects.trafficlight.trafficlight_instant_obj import TrafficlightInstantObj
+from ..base_objs.base_frame_obj import FrameBase
+from .trafficlight_instant_obj import TrafficlightInstantObj
 
 
 class TrafficlightFrameObj(FrameBase):

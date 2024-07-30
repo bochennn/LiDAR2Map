@@ -1,4 +1,4 @@
-from objects.base_objs.base_match_obj import BaseMatch
+from ..base_objs.base_match_obj import BaseMatch
 
 
 class TrafficlightMatchObj(BaseMatch):

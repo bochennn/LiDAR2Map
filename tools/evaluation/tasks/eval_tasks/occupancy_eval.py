@@ -5,7 +5,7 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 
-from tasks.eval_tasks.eval_base import EvalBase
+from .eval_base import EvalBase
 
 ignore_label = 0
 unique_label = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]

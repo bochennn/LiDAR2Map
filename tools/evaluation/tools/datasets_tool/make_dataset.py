@@ -2,13 +2,14 @@ import os
 from collections import OrderedDict
 from multiprocessing.pool import Pool
 
-from cyber_record.record import Record
-from tqdm import tqdm
+from ...log_mgr import logger
+from ...objects.obstacle.objs.obstacle_clip_gt import ObstacleClipGt
+from ...utils.pointcloud_ops import PointCompensator
+from ..m2_data_convert.update_json import hesai_to_m2
 
-from log_mgr import logger
-from objects.obstacle.objs.obstacle_clip_gt import ObstacleClipGt
-from utils.pointcloud_ops import PointCompensator
-from tools.m2_data_convert.update_json import hesai_to_m2
+# from cyber_record.record import Record
+# from tqdm import tqdm
+
 
 
 raw_anno_name = "annotation"

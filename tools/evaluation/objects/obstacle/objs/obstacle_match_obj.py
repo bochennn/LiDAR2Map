@@ -1,9 +1,9 @@
 import math
 
-import open3d as o3d
+# import open3d as o3d
 from shapely.geometry import Polygon, Point
 
-from objects.base_objs.base_match_obj import BaseMatch
+from ...base_objs.base_match_obj import BaseMatch
 
 
 class ObstacleMatchObj(BaseMatch):

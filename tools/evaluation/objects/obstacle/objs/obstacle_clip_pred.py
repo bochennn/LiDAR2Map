@@ -1,18 +1,19 @@
 import os
 import time
-import simplejson as json
 
 import pandas as pd
-
-from objects.base_objs.base_clip_obj import ClipBase
-from objects.obstacle.objs.obstacle_frame_obj import ObstacleFrameObj
-from ..parsers.detection_ret_parser import parser as detection_parser
-# from ..parsers.detection_2d_parser import parser as detection_2d_parser
-from ..parsers.tracking_ret_parser import parser as tracking_parser
+import simplejson as json
 # from ..parsers.fusion_ret_parser import parser as fusion_parser
 # from ..parsers.radar_ret_parser import parser_for_raw as radar_driver_parser
 # from ..parsers.radar_ret_parser import parser_for_processed as radar_per_parser
 from log_mgr import logger
+
+from ...base_objs.base_clip_obj import ClipBase
+from ..parsers.detection_ret_parser import parse_object_list as detection_dict_parser
+from ..parsers.detection_ret_parser import parser as detection_parser
+# from ..parsers.detection_2d_parser import parser as detection_2d_parser
+from ..parsers.tracking_ret_parser import parser as tracking_parser
+from .obstacle_frame_obj import ObstacleFrameObj
 
 
 class ObstacleClipPred(ClipBase):
@@ -29,7 +30,10 @@ class ObstacleClipPred(ClipBase):
 
     @staticmethod
     def parser_deduce(data_path):
-        if isinstance(data_path, list) or os.path.isdir(data_path):
+        if isinstance(data_path, dict): # bochen ADD
+            logger.info("deduced pred parser type: detection")
+            return detection_dict_parser
+        elif isinstance(data_path, list) or os.path.isdir(data_path):
             file_path_list = data_path if isinstance(data_path, list) else [os.path.join(data_path, file_name) for
                                                                             file_name in os.listdir(data_path)
                                                                             if file_name.endswith(".json")]

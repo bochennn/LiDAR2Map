@@ -1,20 +1,23 @@
-from collections import OrderedDict, defaultdict
-import os
 import glob
+import os
+from collections import OrderedDict, defaultdict
 
 import cv2
 import numpy as np
 import pandas as pd
+
+from ...log_mgr import logger
+from ...objects.trafficlight.trafficlight_clip_gt import TrafficlightClipGt
+from ...objects.trafficlight.trafficlight_clip_pred import TrafficlightClipPred
+from ...objects.trafficlight.trafficlight_match_obj import \
+    TrafficlightMatchObj as MatchObj
+from ...utils.index_match import token_match, ts_match
+from ...utils.result_formatter import print_result
+# from objects.trafficlight.parsers.attribute_tool import TrafficLightEnum
+from .eval_base import EvalBase
+
 # from tabulate import tabulate
 
-from objects.trafficlight.trafficlight_clip_gt import TrafficlightClipGt
-from objects.trafficlight.trafficlight_clip_pred import TrafficlightClipPred
-from objects.trafficlight.trafficlight_match_obj import TrafficlightMatchObj as MatchObj
-# from objects.trafficlight.parsers.attribute_tool import TrafficLightEnum
-from tasks.eval_tasks.eval_base import EvalBase
-from utils.index_match import token_match, ts_match
-from utils.result_formatter import print_result
-from log_mgr import logger
 
 
 def cal_metric_tl(match_pair_list, gt_num, interp_num=101):

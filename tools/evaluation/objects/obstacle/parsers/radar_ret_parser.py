@@ -1,9 +1,9 @@
 import numpy as np
 import pandas as pd
-from cyber_record.record import Record
+# from cyber_record.record import Record
 
-from objects.obstacle.parsers.attribute_tool import Attr, ts_round
-from utils.bbox_ops import get_3d_corners, get_quaternion
+from .attribute_tool import Attr, ts_round
+from ....utils.bbox_ops import get_3d_corners, get_quaternion
 
 
 def parser_for_raw(data_path):

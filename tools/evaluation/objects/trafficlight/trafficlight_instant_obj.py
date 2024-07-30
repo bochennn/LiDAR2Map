@@ -1,6 +1,6 @@
 from shapely.geometry import Polygon
 
-from objects.base_objs.base_instant_obj import InstantBase
+from ..base_objs.base_instant_obj import InstantBase
 
 
 class TrafficlightInstantObj(InstantBase):

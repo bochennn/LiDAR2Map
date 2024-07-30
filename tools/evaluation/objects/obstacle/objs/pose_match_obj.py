@@ -1,5 +1,5 @@
-from utils.distance import points_distance
-from objects.obstacle.objs.obstacle_match_obj import ObstacleMatchObj
+from ....utils.distance import points_distance
+from .obstacle_match_obj import ObstacleMatchObj
 
 
 class PoseMatchObj:

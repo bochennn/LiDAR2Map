@@ -1,11 +1,10 @@
+import math
+
 import numpy as np
 from pyquaternion import Quaternion
 
-from objects.base_objs.base_instant_obj import InstantBase
-from objects.tf.attribute_name import Attr
-
-
-import math
+from ..base_objs.base_instant_obj import InstantBase
+from .attribute_name import Attr
 
 
 def quaternion_to_euler(w, x, y, z):

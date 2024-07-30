@@ -1,5 +1,5 @@
 import warnings
-from itertools import zip_longest
+# from itertools import zip_longest
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
@@ -11,7 +11,7 @@ from utils.index_match import ts_match as ts_match_func
 from utils.index_match import token_match
 from utils.multiprocess import multiprocess_execute
 from utils import timeit
-from log_mgr import logger
+# from log_mgr import logger
 
 
 def get_iou_matrix(gt_polygons, pred_polygons):

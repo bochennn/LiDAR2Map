@@ -1,13 +1,12 @@
-import os
 import json
+import os
 
 import pandas as pd
 from tqdm import tqdm
 
-from objects.obstacle.parsers.attribute_tool import Attr, ObstacleEnum, init_polygon, ts_round
-from utils.bbox_ops import get_3d_corners, get_quaternion
-from log_mgr import logger
-
+from ....log_mgr import logger
+from ....utils.bbox_ops import get_3d_corners, get_quaternion
+from .attribute_tool import Attr, ObstacleEnum, init_polygon, ts_round
 
 pd.options.display.float_format = '{:.0f}'.format
 

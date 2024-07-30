@@ -3,8 +3,8 @@ import json
 
 import pandas as pd
 
-from objects.obstacle.parsers.attribute_tool import Attr, ObstacleEnum, init_polygon, ts_round
-from utils.bbox_ops import get_3d_corners, get_quaternion
+from .attribute_tool import Attr, ObstacleEnum, init_polygon, ts_round
+from ....utils.bbox_ops import get_3d_corners, get_quaternion
 
 
 pd.options.display.float_format = '{:.0f}'.format

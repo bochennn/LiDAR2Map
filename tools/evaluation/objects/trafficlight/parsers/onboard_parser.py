@@ -5,7 +5,7 @@ from collections import OrderedDict
 import numpy as np
 import pandas as pd
 
-from objects.trafficlight.parsers.attribute_tool import Attr, TrafficLightEnum
+from .attribute_tool import Attr, TrafficLightEnum
 
 
 def get_corners_2d(xmin, ymin, xmax, ymax):

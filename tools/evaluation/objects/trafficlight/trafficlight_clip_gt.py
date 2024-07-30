@@ -1,12 +1,12 @@
-import os
 import json
+import os
 
-import numpy as np
+# import numpy as np
 import pandas as pd
 
-from objects.base_objs.base_clip_obj import ClipBase
-from objects.trafficlight.trafficlight_frame_obj import TrafficlightFrameObj
-from objects.trafficlight.parsers.attribute_tool import TrafficLightEnum
+from ..base_objs.base_clip_obj import ClipBase
+from .parsers.attribute_tool import TrafficLightEnum
+from .trafficlight_frame_obj import TrafficlightFrameObj
 
 
 class TrafficlightClipGt(ClipBase):

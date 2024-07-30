@@ -2,10 +2,10 @@ import math
 
 import open3d as o3d
 
-from objects.base_objs.base_instant_obj import InstantBase
-from objects.ego.attribute_name import Attr
-from utils.transform import scalar_transform, vector_transform, rotation_matrix
-from utils.bbox_ops import get_3d_corners
+from ...utils.bbox_ops import get_3d_corners
+from ...utils.transform import rotation_matrix, scalar_transform, vector_transform
+from ..base_objs.base_instant_obj import InstantBase
+from .attribute_name import Attr
 
 
 class EgoInstantObj(InstantBase):

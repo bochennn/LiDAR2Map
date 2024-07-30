@@ -1,6 +1,6 @@
 import os
 
-from tasks.corner_case_task.long_distance_case import LongDistChecker
+# from tasks.corner_case_task.long_distance_case import LongDistChecker
 from tasks.corner_case_task.heading_revere_case import HeadingReverseChecker
 from tasks.corner_case_task.size_inconsistent_case import SizeConsistentChecker
 from tasks.corner_case_task.heading_revere_case import HeadingReverseChecker

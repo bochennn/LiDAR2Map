@@ -1,6 +1,6 @@
 import argparse
 
-from tasks import TaskBuilder
+from evaluation.tasks import TaskBuilder
 
 
 if __name__ == "__main__":

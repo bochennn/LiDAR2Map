@@ -1,15 +1,16 @@
-import json
+# import json
 import os.path
 import time
 
 import pandas as pd
 
-from objects.base_objs.base_clip_obj import ClipBase
-from objects.obstacle.objs.obstacle_frame_obj import ObstacleFrameObj
-from objects.obstacle.parsers.gt_parser import parse_zdrive_anno as zdrive_parser
-from objects.obstacle.parsers.gt_parser import parse_json as normal_parser
-from objects.obstacle.parsers.gt_parser import parse_visual_json as visual_parser
-from log_mgr import logger
+from ....log_mgr import logger
+from ...base_objs.base_clip_obj import ClipBase
+from ..parsers.gt_parser import parse_json as normal_parser
+from ..parsers.gt_parser import parse_obejct_list as dict_obejct_parser
+from ..parsers.gt_parser import parse_visual_json as visual_parser
+from ..parsers.gt_parser import parse_zdrive_anno as zdrive_parser
+from .obstacle_frame_obj import ObstacleFrameObj
 
 
 class ObstacleClipGt(ClipBase):
@@ -26,7 +27,12 @@ class ObstacleClipGt(ClipBase):
 
     def parse(self):
         try:
-            if self.data_path.endswith("json"):
+            if isinstance(self.data_path, dict):
+                # bochen ADD: read from a dict object contains frames info
+                # format: {ts1: {gt=json_obj, pd=json_obj}, ts2: ...}
+                # where json_obj is the same content as read from example_data/eval_obstacle
+                return dict_obejct_parser(self.data_path)
+            elif self.data_path.endswith("json"):
                 if "data_all" in os.path.basename(self.data_path):
                     return normal_parser(self.data_path)
                 else:

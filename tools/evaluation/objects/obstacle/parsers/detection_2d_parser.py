@@ -2,8 +2,8 @@ import json
 
 import pandas as pd
 
-from objects.obstacle.parsers.attribute_tool import Attr
-from utils.bbox_ops import get_2d_corners
+from ....utils.bbox_ops import get_2d_corners
+from .attribute_tool import Attr
 
 
 def parser(data_path):

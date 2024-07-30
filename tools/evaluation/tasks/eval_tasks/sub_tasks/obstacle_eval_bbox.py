@@ -170,3 +170,4 @@ class ObstacleEvalBbox:
                 arg_list.append((category, distance))
         eval_result = multiprocess_execute(self.executor, arg_list, processes=self.processes)
         self.obstacle_result_process(eval_result)
+        return eval_result

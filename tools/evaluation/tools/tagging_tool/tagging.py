@@ -1,5 +1,5 @@
 from enum import Enum
-from objects.obstacle.objs.obstacle_clip_pred import ObstacleClipPred
+# from objects.obstacle.objs.obstacle_clip_pred import ObstacleClipPred
 
 
 class Tags(Enum):

@@ -1,12 +1,12 @@
 import os
 from functools import partial
 
-from objects.base_objs.base_clip_obj import ClipBase
-from objects.occupancy.objs.occupancy_frame_obj import OccupancyFrame
-from objects.occupancy.parsers.attribute_tool import Attr
-from objects.occupancy.parsers.voxel_parser import parser as voxel_parser
-from objects.occupancy.parsers.lidar_seg_parser import parser as lidar_seg_parser
-from log_mgr import logger
+from ....log_mgr import logger
+from ...base_objs.base_clip_obj import ClipBase
+from ..parsers.attribute_tool import Attr
+from ..parsers.lidar_seg_parser import parser as lidar_seg_parser
+from ..parsers.voxel_parser import parser as voxel_parser
+from .occupancy_frame_obj import OccupancyFrame
 
 
 class OccupancyClipGt(ClipBase):

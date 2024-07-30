@@ -1,7 +1,7 @@
 import numpy as np
 
-from tasks.eval_tasks.sub_tasks.obstacle_eval_tracking import ObstacleEvalTrack
-from log_mgr import logger
+from ..eval_tasks.sub_tasks.obstacle_eval_tracking import ObstacleEvalTrack
+from ...log_mgr import logger
 
 
 class HeadingAbnormalChecker:

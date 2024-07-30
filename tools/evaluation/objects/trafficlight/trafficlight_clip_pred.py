@@ -1,12 +1,12 @@
-import os
 import json
+import os
 
-import numpy as np
+# import numpy as np
 import pandas as pd
 
-from objects.base_objs.base_clip_obj import ClipBase
-from objects.trafficlight.trafficlight_frame_obj import TrafficlightFrameObj
-from objects.trafficlight.parsers.onboard_parser import parser as onboard_parser
+from ..base_objs.base_clip_obj import ClipBase
+# from .parsers.onboard_parser import parser as onboard_parser
+from .trafficlight_frame_obj import TrafficlightFrameObj
 
 
 class TrafficlightClipPred(ClipBase):
