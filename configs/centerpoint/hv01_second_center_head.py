@@ -109,6 +109,8 @@ train_pipeline = [
     dict(type='LoadAnnotations3D',
          with_bbox_3d=True, with_label_3d=True),
     dict(type='PointsRangeFilter', point_cloud_range=pts_range),
+    dict(type='ObjectRangeFilter', point_cloud_range=pts_range),
+    dict(type='ObjectNameFilter', classes=class_names),
     dict(type='DefaultFormatBundle3D', class_names=class_names),
     dict(type='Collect3D', keys=['points', 'gt_bboxes_3d', 'gt_labels_3d'])
 ]
@@ -116,8 +118,8 @@ train_pipeline = [
 eval_pipeline = [
     dict(type='LoadPointsFromFile',
          load_dim=4, use_dim=4, convert_ego=True),
-    dict(type='LoadAnnotations3D',
-         with_bbox_3d=True, with_label_3d=True),
+    # dict(type='LoadAnnotations3D',
+    #      with_bbox_3d=True, with_label_3d=True),
     dict(type='PointsRangeFilter', point_cloud_range=pts_range),
     dict(type='DefaultFormatBundle3D', class_names=class_names),
     dict(type='Collect3D', keys=['points'])
@@ -132,4 +134,4 @@ data = dict(
 )
 
 optimizer = dict(lr=0.001)
-runner = dict(max_epochs=64)
+runner = dict(max_epochs=36)

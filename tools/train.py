@@ -20,15 +20,9 @@ from mmdet3d.datasets import build_dataset
 from mmdet3d.models import build_model
 from mmdet3d.utils import collect_env, get_root_logger
 from mmdet.apis import set_random_seed
+from mmdet.utils import setup_multi_processes
 from mmseg import __version__ as mmseg_version
 from plugin.utils import convert_sync_batchnorm
-
-try:
-    # If mmdet version > 2.20.0, setup_multi_processes would be imported and
-    # used from mmdet instead of mmdet3d.
-    from mmdet.utils import setup_multi_processes
-except ImportError:
-    from mmdet3d.utils import setup_multi_processes
 
 
 def parse_args():
@@ -46,17 +40,6 @@ def parse_args():
         action='store_true',
         help='whether not to evaluate the checkpoint during training')
     group_gpus = parser.add_mutually_exclusive_group()
-    group_gpus.add_argument(
-        '--gpus',
-        type=int,
-        help='(Deprecated, please use --gpu-id) number of gpus to use '
-        '(only applicable to non-distributed training)')
-    group_gpus.add_argument(
-        '--gpu-ids',
-        type=int,
-        nargs='+',
-        help='(Deprecated, please use --gpu-id) ids of gpus to use '
-        '(only applicable to non-distributed training)')
     group_gpus.add_argument(
         '--gpu-id',
         type=int,
@@ -93,7 +76,7 @@ def parse_args():
         action='store_true',
         help='automatically scale lr with the number of gpus')
     parser.add_argument(
-        '--sync_bn',
+        '--sync-bn',
         action='store_true',
         help='convert all BatchNorm layers in the model to SyncBatchNorm '
         '(SyncBN) or mmcv.ops.sync_bn.SyncBatchNorm (MMSyncBN) layers.')
@@ -131,38 +114,21 @@ def main():
 
     if args.auto_resume:
         cfg.auto_resume = args.auto_resume
-        warnings.warn('`--auto-resume` is only supported when mmdet'
-                      'version >= 2.20.0 for 3D detection model or'
-                      'mmsegmentation verision >= 0.21.0 for 3D'
-                      'segmentation model')
-
-    if args.gpus is not None:
-        cfg.gpu_ids = range(1)
-        warnings.warn('`--gpus` is deprecated because we only support '
-                      'single GPU mode in non-distributed training. '
-                      'Use `gpus=1` now.')
-    if args.gpu_ids is not None:
-        cfg.gpu_ids = args.gpu_ids[0:1]
-        warnings.warn('`--gpu-ids` is deprecated, please use `--gpu-id`. '
-                      'Because we only support single GPU mode in '
-                      'non-distributed training. Use the first GPU '
-                      'in `gpu_ids` now.')
-    if args.gpus is None and args.gpu_ids is None:
-        cfg.gpu_ids = [args.gpu_id]
-
-    if args.autoscale_lr:
-        # apply the linear scaling rule (https://arxiv.org/abs/1706.02677)
-        cfg.optimizer['lr'] = cfg.optimizer['lr'] * len(cfg.gpu_ids) / 8
 
     # init distributed env first, since logger depends on the dist info.
     if args.launcher == 'none':
         distributed = False
+        cfg.gpu_ids = [args.gpu_id]
     else:
         distributed = True
         init_dist(args.launcher, **cfg.dist_params)
         # re-set gpu_ids with distributed training mode
         _, world_size = get_dist_info()
         cfg.gpu_ids = range(world_size)
+
+    if args.autoscale_lr:
+        # apply the linear scaling rule (https://arxiv.org/abs/1706.02677)
+        cfg.optimizer['lr'] = cfg.optimizer['lr'] * len(cfg.gpu_ids) / 8
 
     # create work_dir
     mmcv.mkdir_or_exist(osp.abspath(cfg.work_dir))
