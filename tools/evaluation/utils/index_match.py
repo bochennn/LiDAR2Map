@@ -19,7 +19,7 @@ def token_match(token_lists, verbose=False):
 def cal_freq(ts_list):
     diff = np.diff(ts_list, axis=0)
     diff = diff[(diff > 0) & (diff < 10)]
-    return round(1 / diff.mean(), 2)
+    return round(1 / diff.mean(), 2) if len(ts_list) > 0 else 0.
 
 
 def ts_match(ts_lists, verbose=False, max_allowed_gap=0.08):

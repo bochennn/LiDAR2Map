@@ -1,7 +1,7 @@
 import torch
 from mmdet3d.models.builder import VOXEL_ENCODERS
 from mmdet3d.models.voxel_encoders.voxel_encoder import \
-    DynamicVFE as _DynamicVFE
+    DynamicSimpleVFE as _DynamicSimpleVFE
 from mmdet3d.models.voxel_encoders.voxel_encoder import \
     HardSimpleVFE as _HardSimpleVFE
 
@@ -27,7 +27,7 @@ class HardSimpleVFE(_HardSimpleVFE):
 
 
 @VOXEL_ENCODERS.register_module(force=True)
-class DynamicVFE(_DynamicVFE):
+class DynamicSimpleVFE(_DynamicSimpleVFE):
     def forward(
         self,
         voxels: torch.Tensor,
@@ -36,7 +36,7 @@ class DynamicVFE(_DynamicVFE):
         **kwargs
     ):
         voxel_feats, voxel_coors = super(
-            DynamicVFE, self).forward(features=voxels, coors=coors)
+            DynamicSimpleVFE, self).forward(features=voxels, coors=coors)
 
         return dict(
             batch_size=batch_size,

@@ -233,6 +233,7 @@ def parse_obejct_list(data_list):
             ts = float(ts)
         except ValueError:
             ts = ts
+
         for obj in frame_data:
             center = obj["psr"]["position"]
             lidar_x, lidar_y, lidar_z = center["x"], center["y"], center["z"]
@@ -243,10 +244,10 @@ def parse_obejct_list(data_list):
             bbox_3d = get_3d_corners(lidar_x, lidar_y, lidar_z, length, width, height, rotation_matrix(yaw))
             bbox_2d = bbox_3d[:4, :2]
 
-            category = obj["obj_sub_type"] if "obj_sub_type" in obj else obj["obj_type"]
-            if isinstance(category, int):
-                category = ObstacleEnum.fusion_subtype_enum[category]
-            category = ObstacleEnum.super_class_map[category]
+            category = ObstacleEnum.super_class_map.get(obj["category"])
+            if category is None:
+                logger.warning("unsupport category: {}".format(obj["category"]))
+                continue
             extract_data[Attr.ts].append(ts)
             extract_data[Attr.object_id].append(obj["obj_id"])
             extract_data[Attr.frame_seq].append(frame_seq)

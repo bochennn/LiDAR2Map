@@ -24,8 +24,7 @@ train_pipeline = [
          load_dim=4,
          use_dim=4),
     dict(type='LoadAnnotations3D',
-         with_label_3d=True
-    ),
+         with_label_3d=True),
     dict(type='GlobalRotScaleTrans',
          rot_range=[-0.3925, 0.3925],
          scale_ratio_range=[0.95, 1.05],
@@ -34,7 +33,6 @@ train_pipeline = [
     dict(type='PointsRangeFilter', point_cloud_range=point_cloud_range),
     dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
     dict(type='ObjectNameFilter', classes=class_names),
-    dict(type='PointShuffle'),
     dict(type='DefaultFormatBundle3D', class_names=class_names),
     dict(type='Collect3D', keys=['points', 'gt_bboxes_3d', 'gt_labels_3d'])
 ]
@@ -45,7 +43,7 @@ eval_pipeline = [
          coord_type='LIDAR',
          load_dim=4,
          use_dim=4),
-    dict(type='DefaultFormatBundle3D', class_names=class_names),
+    # dict(type='DefaultFormatBundle3D', class_names=class_names),
     dict(type='Collect3D', keys=['points'])
 ]
 
@@ -66,6 +64,17 @@ data = dict(
         box_type_3d='LiDAR',
         use_valid_flag=True),
     val=dict(
+        type=dataset_type,
+        data_root=data_root,
+        ann_file=data_root + 'zdrive_infos_val.pkl',
+        pipeline=eval_pipeline,
+        classes=class_names,
+        modality=input_modality,
+        test_mode=True,
+        with_velocity=False,
+        box_type_3d='LiDAR',
+        use_valid_flag=True),
+    test=dict(
         type=dataset_type,
         data_root=data_root,
         ann_file=data_root + 'zdrive_infos_val.pkl',

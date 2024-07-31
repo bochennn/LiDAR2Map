@@ -55,7 +55,7 @@ class MVXTwoStageDetector(_MVXTwoStageDetector):
 
     def forward_test(
         self,
-        points: torch.Tensor = None,
+        points: List[torch.Tensor] = None,
         img_metas: List = None,
         img: torch.Tensor = None,
         rescale: bool = False,

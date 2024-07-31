@@ -120,6 +120,21 @@ class ZDriveDataset(NuScenesDataset):
                         rotation=dict(x=0, y=0, z=gt_box_yaw[j]))
                 )
                 gt_box_list.append(gt_box)
+
+            # from ..utils import read_points_pcd, convert_points
+            # import numpy as np
+            # from visualization import show_o3d
+            # points = read_points_pcd(self.data_infos[sample_id]['lidars']['lidar0']['filename'])
+            # points = convert_points(points, transform_matrix(
+            #         self.data_infos[sample_id]['lidars']['lidar0']['sensor2ego_translation'],
+            #         self.data_infos[sample_id]['lidars']['lidar0']['sensor2ego_rotation']
+            #     ))
+            # show_o3d([points], [{'box3d': np.vstack([
+            #     np.hstack([gt_box_center, gt_box_dims, gt_box_yaw[:, None]]),
+            #     np.hstack([pd_box_center, pd_box_dims, pd_box_yaw[:, None]])]),
+            #     'labels': np.hstack([np.zeros(len(gt_box_center)), np.ones(len(pd_box_center))]).astype(int)
+            # }])
+
             results_dict[self.data_infos[sample_id]['timestamp']] = \
                 dict(pred=pd_box_list, gt=gt_box_list)
         return results_dict

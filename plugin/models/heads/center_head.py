@@ -131,7 +131,11 @@ class CenterPointBBoxCoder(_CenterPointBBoxCoder):
 @HEADS.register_module(force=True)
 class CenterHead(_CenterHead):
 
-    def get_targets_single(self, gt_bboxes_3d, gt_labels_3d):
+    def get_targets_single(
+        self,
+        gt_bboxes_3d,
+        gt_labels_3d: torch.Tensor
+    ):
         """Generate training targets for a single sample.
 
         Args:

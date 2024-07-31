@@ -127,7 +127,8 @@ data = dict(
     samples_per_gpu=2,
     workers_per_gpu=8,
     train=dict(pipeline=train_pipeline),
-    val=dict(pipeline=eval_pipeline)
+    val=dict(pipeline=eval_pipeline),
+    test=dict(pipeline=eval_pipeline)
 )
 
 optimizer = dict(lr=0.001)
