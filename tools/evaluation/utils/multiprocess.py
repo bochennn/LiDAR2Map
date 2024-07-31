@@ -5,7 +5,7 @@ from multiprocessing import Process, Pipe
 from itertools import islice
 import math
 
-import numpy as np
+# import numpy as np
 
 
 def init_process(func, arg_list, arg_star=False):

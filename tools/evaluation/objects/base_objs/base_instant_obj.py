@@ -1,6 +1,6 @@
-from abc import ABC, abstractmethod
+# from abc import ABC, abstractmethod
 
-from log_mgr import logger
+from ...log_mgr import logger
 
 
 class InstantBase:

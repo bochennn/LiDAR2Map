@@ -1,8 +1,8 @@
 import pprint
 
 from .eval_tasks import ObstacleEval, TrafficlightEval, ObstacleEvalPose, ObstacleEvalCluster
-from config import ConfigParser
-from log_mgr import logger
+from ..config import ConfigParser
+from ..log_mgr import logger
 
 
 class TaskBuilder:

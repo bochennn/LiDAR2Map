@@ -2,8 +2,8 @@ from collections import OrderedDict
 
 import matplotlib.pyplot as plt
 import numpy as np
-from log_mgr import logger
 
+from ...log_mgr import logger
 from ...objects.ego.ego_clip import EgoClip
 from ...objects.obstacle.objs.obstacle_clip_pred import ObstacleClipPred
 from ...objects.obstacle.objs.pose_match_obj import PoseMatchObj

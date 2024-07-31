@@ -4,10 +4,10 @@ from collections import OrderedDict
 import numpy as np
 import pandas as pd
 
-from utils.multiprocess import multiprocess_execute
-from utils.result_formatter import print_result
-from utils import timeit
-from log_mgr import logger
+from ....utils.multiprocess import multiprocess_execute
+from ....utils.result_formatter import print_result
+# from utils import timeit
+from ....log_mgr import logger
 
 
 class ObstacleEvalBbox:

@@ -1,7 +1,7 @@
 import numpy as np
 from Geometry3D import Point, Segment, ConvexPolygon, ConvexPolyhedron, intersection, Renderer
 
-from utils.transform import rotation_matrix
+from .transform import rotation_matrix
 
 
 def create_convex_polygon(plane):

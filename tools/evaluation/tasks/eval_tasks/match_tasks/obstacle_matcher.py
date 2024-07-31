@@ -7,10 +7,10 @@ from geopandas import GeoSeries
 from shapely import points
 from shapely.geometry import Point
 
-from utils.index_match import ts_match as ts_match_func
-from utils.index_match import token_match
-from utils.multiprocess import multiprocess_execute
-from utils import timeit
+from ....utils.index_match import ts_match as ts_match_func
+from ....utils.index_match import token_match
+from ....utils.multiprocess import multiprocess_execute
+from ....utils import timeit
 # from log_mgr import logger
 
 

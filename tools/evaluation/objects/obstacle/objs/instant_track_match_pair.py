@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
-from log_mgr import logger
+from ....log_mgr import logger
 
 
 class TrackMatchPair:

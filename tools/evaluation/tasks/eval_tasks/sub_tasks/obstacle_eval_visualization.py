@@ -3,7 +3,7 @@ from collections import defaultdict
 
 import simplejson as json
 
-from log_mgr import logger
+from ....log_mgr import logger
 
 
 class ObstacleFailedVisual:

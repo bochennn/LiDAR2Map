@@ -1,6 +1,6 @@
 from shapely import polygons
 
-from log_mgr import logger
+from ....log_mgr import logger
 
 
 def ts_round(ts):

@@ -6,7 +6,7 @@ import numpy as np
 from sklearn.cluster import MeanShift
 from sklearn.mixture import GaussianMixture
 
-from log_mgr import logger
+from ..log_mgr import logger
 
 
 def gaussian_cluster(datas, max_cluster=7):

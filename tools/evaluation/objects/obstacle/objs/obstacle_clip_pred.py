@@ -3,13 +3,14 @@ import time
 
 import pandas as pd
 import simplejson as json
+
 # from ..parsers.fusion_ret_parser import parser as fusion_parser
 # from ..parsers.radar_ret_parser import parser_for_raw as radar_driver_parser
 # from ..parsers.radar_ret_parser import parser_for_processed as radar_per_parser
-from log_mgr import logger
-
+from ....log_mgr import logger
 from ...base_objs.base_clip_obj import ClipBase
-from ..parsers.detection_ret_parser import parse_object_list as detection_dict_parser
+from ..parsers.detection_ret_parser import \
+    parse_object_list as detection_dict_parser
 from ..parsers.detection_ret_parser import parser as detection_parser
 # from ..parsers.detection_2d_parser import parser as detection_2d_parser
 from ..parsers.tracking_ret_parser import parser as tracking_parser

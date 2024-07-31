@@ -4,9 +4,9 @@ import os
 import pandas as pd
 from tqdm import tqdm
 
-from utils.transform import quaternion_to_euler
-from utils.bbox_ops import get_3d_corners, get_quaternion
-from utils.transform import rotation_matrix
+from ....utils.transform import quaternion_to_euler
+from ....utils.bbox_ops import get_3d_corners, get_quaternion
+from ....utils.transform import rotation_matrix
 
 from .attribute_tool import Attr, ObstacleEnum, offset_z, ts_round, init_polygon
 from ....log_mgr import logger

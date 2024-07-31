@@ -1,7 +1,7 @@
 from functools import wraps
 from time import time
 
-from log_mgr import logger
+from ..log_mgr import logger
 
 
 def timeit(f):

@@ -6,9 +6,9 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-from utils.plot import palette, get_ax2
-from utils.result_formatter import print_result
-from log_mgr import logger
+from ....utils.plot import palette, get_ax2
+from ....utils.result_formatter import print_result
+from ....log_mgr import logger
 
 
 class ObstacleEvalHeading:

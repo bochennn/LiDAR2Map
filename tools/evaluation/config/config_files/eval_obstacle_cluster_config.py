@@ -1,9 +1,9 @@
 from collections import OrderedDict
-import sys
+# import sys
 
 from shapely.geometry import Polygon
 
-from config.config_files.eval_obstacle_config import Category, MatchMethod
+from .eval_obstacle_config import Category, MatchMethod
 
 
 __all__ = ["eval_obstacle_cluster_config"]

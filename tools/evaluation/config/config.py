@@ -1,6 +1,6 @@
-from config.config_files.eval_obstacle_config import eval_obstacle_config
-from config.config_files.eval_trafficlight_config import eval_trafficlight_config
-from config.config_files.eval_obstacle_cluster_config import eval_obstacle_cluster_config
+from .config_files.eval_obstacle_config import eval_obstacle_config
+from .config_files.eval_trafficlight_config import eval_trafficlight_config
+from .config_files.eval_obstacle_cluster_config import eval_obstacle_cluster_config
 
 
 def obstacle_config_process(config):

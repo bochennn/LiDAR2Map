@@ -1,6 +1,6 @@
 from tabulate import tabulate
 
-from log_mgr import logger
+# from log_mgr import logger
 
 
 def print_result(result_table, table_name):

@@ -2,8 +2,8 @@ import numpy as np
 from pyquaternion import Quaternion
 import cv2
 
-from utils.pointcloud_ops import project_lidar_to_img
-from log_mgr import logger
+from .pointcloud_ops import project_lidar_to_img
+from ..log_mgr import logger
 
 
 LABEL_COLOR = {

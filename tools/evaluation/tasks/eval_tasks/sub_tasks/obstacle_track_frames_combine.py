@@ -3,8 +3,8 @@ import os
 import numpy as np
 import simplejson as json
 
-from utils.transform import scalar_transform, vector_transform
-from utils.pointcloud_ops import load_bin, points_crop
+from ....utils.transform import scalar_transform, vector_transform
+from ....utils.pointcloud_ops import load_bin, points_crop
 
 
 class TrackFrameCombine:

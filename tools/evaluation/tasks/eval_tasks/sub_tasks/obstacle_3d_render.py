@@ -3,7 +3,7 @@ import numpy as np
 import open3d as o3d
 import matplotlib.pyplot as plt
 
-from utils.plot import get_ax1
+from ....utils.plot import get_ax1
 
 
 class ObstacleO3dRender:

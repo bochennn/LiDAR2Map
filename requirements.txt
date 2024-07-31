@@ -1,14 +1,15 @@
+#mmcv-full==1.6.0
+#mmdet==2.24.0
+#mmsegmentation==0.25.0
 easydict
-mmcv-full==1.6.0
-mmdet==2.24.0
-mmsegmentation==0.25.0
-yapf==0.40.1
-pyquaternion
-tensorboardX
 efficientnet_pytorch
-torch_scatter
-shapely==2.0.1
-# shapely==1.8.5
-pyproj
-tabulate
 geopandas
+open3d
+pyproj
+pyquaternion
+seaborn
+shapely==2.0.1
+tabulate
+tensorboardX
+torch_scatter
+yapf==0.40.1

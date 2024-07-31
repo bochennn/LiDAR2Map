@@ -6,8 +6,8 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-from utils.plot import palette, get_ax4
-from utils.result_formatter import print_result
+from ....utils.plot import palette, get_ax4
+from ....utils.result_formatter import print_result
 
 
 class ObstacleEvalLocation:
