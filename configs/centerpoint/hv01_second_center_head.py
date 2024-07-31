@@ -22,8 +22,9 @@ class_names = [
 model = dict(
     type='CenterPoint',
     pts_voxel_layer=dict(
-        max_num_points=10, voxel_size=voxel_size,
-        max_voxels=(90000, 12000), point_cloud_range=point_cloud_range),
+        max_num_points=10, max_voxels=(90000, 120000),
+        voxel_size=voxel_size,
+        point_cloud_range=point_cloud_range),
     pts_voxel_encoder=dict(type='HardSimpleVFE', num_features=4),
     pts_middle_encoder=dict(
         type='SparseEncoder',
@@ -40,7 +41,7 @@ model = dict(
         out_channels=[128, 256],
         layer_nums=[5, 5],
         layer_strides=[1, 2],
-        norm_cfg=dict(type='BN2d', eps=1e-3, momentum=0.01),
+        norm_cfg=dict(type='BN', eps=1e-3, momentum=0.01),
         conv_cfg=dict(type='Conv2d', bias=False)),
     pts_neck=dict(
         type='SECONDFPN',
