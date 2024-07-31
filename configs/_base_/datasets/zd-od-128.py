@@ -1,7 +1,7 @@
 
 # If point cloud range is changed, the models should also change their point
 # cloud range accordingly
-point_cloud_range = [-50, -50, -5, 50, 50, 3]
+point_cloud_range = [-82.4, -57.6, -3.0, 122.4, 57.6, 5.0]
 # For nuScenes we usually do 10-class detection
 class_names = [
     'car', 'pickup_truck', 'truck', 'construction_vehicle', 'bus',
@@ -30,8 +30,8 @@ train_pipeline = [
          scale_ratio_range=[0.95, 1.05],
          translation_std=[0, 0, 0]),
     dict(type='RandomFlip3D', flip_ratio_bev_horizontal=0.5),
-    dict(type='PointsRangeFilter', point_cloud_range=point_cloud_range),
-    dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
+    # dict(type='PointsRangeFilter', point_cloud_range=point_cloud_range),
+    # dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
     dict(type='ObjectNameFilter', classes=class_names),
     dict(type='DefaultFormatBundle3D', class_names=class_names),
     dict(type='Collect3D', keys=['points', 'gt_bboxes_3d', 'gt_labels_3d'])

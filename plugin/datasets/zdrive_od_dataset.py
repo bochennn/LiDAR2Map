@@ -13,7 +13,6 @@ class ZDriveDataset(NuScenesDataset):
     NameMapping = {
         'car': 'Car',
         'bus': 'Bus',
-        # 'van': 'Bus',
         'tricycle': 'Cyclist',
         'motorcycle': 'Cyclist',
         'bicycle': 'Cyclist',

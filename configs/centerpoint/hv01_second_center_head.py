@@ -7,11 +7,11 @@ custom_imports = dict(
     allow_failed_imports=False)
 
 voxel_size = [0.1, 0.1, 0.2]
-pts_range = [-82.4, -57.6, -3.0, 122.4, 57.6, 5.0]
+point_cloud_range = [-82.4, -57.6, -3.0, 122.4, 57.6, 5.0]
 grid_size = [
-    int((pts_range[3] - pts_range[0]) / voxel_size[0]),
-    int((pts_range[4] - pts_range[1]) / voxel_size[1]),
-    int((pts_range[5] - pts_range[2]) / voxel_size[2]),
+    int((point_cloud_range[3] - point_cloud_range[0]) / voxel_size[0]),
+    int((point_cloud_range[4] - point_cloud_range[1]) / voxel_size[1]),
+    int((point_cloud_range[5] - point_cloud_range[2]) / voxel_size[2]),
 ]
 
 class_names = [
@@ -23,7 +23,7 @@ model = dict(
     type='CenterPoint',
     pts_voxel_layer=dict(
         max_num_points=10, voxel_size=voxel_size,
-        max_voxels=(90000, 12000), point_cloud_range=pts_range),
+        max_voxels=(90000, 12000), point_cloud_range=point_cloud_range),
     pts_voxel_encoder=dict(type='HardSimpleVFE', num_features=4),
     pts_middle_encoder=dict(
         type='SparseEncoder',
@@ -65,7 +65,7 @@ model = dict(
         share_conv_channel=64,
         bbox_coder=dict(
             type='CenterPointBBoxCoder',
-            pc_range=pts_range[:2],
+            pc_range=point_cloud_range[:2],
             out_size_factor=8,
             voxel_size=voxel_size[:2],
             post_center_range=[-85.2, -65.2, -10.0, 125.2, 65.2, 10.0],
@@ -80,7 +80,7 @@ model = dict(
     # model training and testing settings
     train_cfg=dict(
         pts=dict(
-            point_cloud_range=pts_range,
+            point_cloud_range=point_cloud_range,
             grid_size=grid_size,
             voxel_size=voxel_size,
             out_size_factor=8,
@@ -108,8 +108,8 @@ train_pipeline = [
          load_dim=4, use_dim=4, convert_ego=True),
     dict(type='LoadAnnotations3D',
          with_bbox_3d=True, with_label_3d=True),
-    dict(type='PointsRangeFilter', point_cloud_range=pts_range),
-    dict(type='ObjectRangeFilter', point_cloud_range=pts_range),
+    dict(type='PointsRangeFilter', point_cloud_range=point_cloud_range),
+    dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
     dict(type='ObjectNameFilter', classes=class_names),
     dict(type='DefaultFormatBundle3D', class_names=class_names),
     dict(type='Collect3D', keys=['points', 'gt_bboxes_3d', 'gt_labels_3d'])
@@ -120,7 +120,7 @@ eval_pipeline = [
          load_dim=4, use_dim=4, convert_ego=True),
     # dict(type='LoadAnnotations3D',
     #      with_bbox_3d=True, with_label_3d=True),
-    dict(type='PointsRangeFilter', point_cloud_range=pts_range),
+    dict(type='PointsRangeFilter', point_cloud_range=point_cloud_range),
     dict(type='DefaultFormatBundle3D', class_names=class_names),
     dict(type='Collect3D', keys=['points'])
 ]

@@ -42,7 +42,7 @@ class LoadPointsFromFile(_LoadPointsFromFile):
         try:
             if pts_filename.endswith('.pcd'):
                 points = read_points_pcd(pts_filename)[:, :self.load_dim]
-                points[:, 3] /= 255. 
+                points[:, 3] /= 255.
             elif pts_filename.endswith('.bin'):
                 pts_bytes = self.file_client.get(pts_filename)
                 points = np.frombuffer(pts_bytes, dtype=np.float32).reshape(-1, self.load_dim)

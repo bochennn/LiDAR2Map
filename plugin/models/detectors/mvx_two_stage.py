@@ -1,8 +1,9 @@
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import torch
 from mmcv.runner import force_fp32
-from mmdet3d.models.builder import DETECTORS
+from mmdet3d.core.bbox import LiDARInstance3DBoxes
+from mmdet3d.models.builder import DETECTORS, build_head, build_middle_encoder
 from mmdet3d.models.detectors.mvx_two_stage import \
     MVXTwoStageDetector as _MVXTwoStageDetector
 from torch.nn import functional as F
@@ -10,6 +11,23 @@ from torch.nn import functional as F
 
 @DETECTORS.register_module(force=True)
 class MVXTwoStageDetector(_MVXTwoStageDetector):
+
+    def __init__(
+        self,
+        pts_encoder: Optional[Dict] = None,
+        pts_roi_head: Optional[Dict] = None,
+        **kwargs
+    ):
+        super(MVXTwoStageDetector, self).__init__(**kwargs)
+        if pts_roi_head is not None:
+            self.pts_roi_head = build_head(pts_roi_head)
+        if pts_encoder is not None:
+            self.pts_encoder = build_middle_encoder(pts_encoder)
+
+    @property
+    def with_pts_roi_head(self):
+        """bool: Whether the detector has a RoI Head in 3D branch."""
+        return hasattr(self, 'pts_roi_head') and self.pts_roi_head is not None
 
     @torch.no_grad()
     @force_fp32()
@@ -52,6 +70,36 @@ class MVXTwoStageDetector(_MVXTwoStageDetector):
         if self.with_pts_neck:
             pts_feature = self.pts_neck(pts_feature)
         return pts_feature
+
+    def forward_pts_train(self,
+                          pts_feats: List[torch.Tensor],
+                          gt_bboxes_3d: List[LiDARInstance3DBoxes],
+                          gt_labels_3d: List[torch.Tensor],
+                          img_metas: List[Dict],
+                          gt_bboxes_ignore = None):
+        """Forward function for point cloud branch.
+
+        Args:
+            pts_feats (list[torch.Tensor]): Features of point cloud branch
+            gt_bboxes_3d (list[:obj:`BaseInstance3DBoxes`]): Ground truth
+                boxes for each sample.
+            gt_labels_3d (list[torch.Tensor]): Ground truth labels for
+                boxes of each sampole
+            img_metas (list[dict]): Meta information of samples.
+            gt_bboxes_ignore (list[torch.Tensor], optional): Ground truth
+                boxes to be ignored. Defaults to None.
+
+        Returns:
+            dict: Losses of each branch.
+        """
+        outs = self.pts_bbox_head(pts_feats)
+        losses = self.pts_bbox_head.loss(gt_bboxes_3d=gt_bboxes_3d,
+                                         gt_labels_3d=gt_labels_3d,
+                                         preds_dicts=outs)
+        if self.with_pts_roi_head:
+            proposal_list = self.pts_bbox_head.get_bboxes(outs, img_metas)
+
+        return losses
 
     def forward_test(
         self,

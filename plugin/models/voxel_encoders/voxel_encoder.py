@@ -1,3 +1,5 @@
+from typing import List
+
 import torch
 from mmdet3d.models.builder import VOXEL_ENCODERS
 from mmdet3d.models.voxel_encoders.voxel_encoder import \
@@ -28,6 +30,11 @@ class HardSimpleVFE(_HardSimpleVFE):
 
 @VOXEL_ENCODERS.register_module(force=True)
 class DynamicSimpleVFE(_DynamicSimpleVFE):
+    def __init__(
+        self, voxel_size: List,
+        point_cloud_range: List, **kwargs):
+        super(DynamicSimpleVFE, self).__init__(voxel_size, point_cloud_range)
+
     def forward(
         self,
         voxels: torch.Tensor,

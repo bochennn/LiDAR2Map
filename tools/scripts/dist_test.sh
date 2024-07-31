@@ -8,7 +8,7 @@ MASTER_ADDR=${MASTER_ADDR:-"127.0.0.1"}
 
 cd $CODE_ROOT
 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
-PYTHONPATH=$CODE_ROOT/tools/evaluation:$CODE_ROOT \
+PYTHONPATH=$PYTHONPATH:$CODE_ROOT/tools/evaluation:$CODE_ROOT \
     torchrun \
     --nnodes=$NNODES \
     --node_rank=$NODE_RANK \
