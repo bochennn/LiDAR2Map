@@ -1,6 +1,7 @@
 from configs._base_.datasets.zd_od128 import CLASS_NAMES
 _base_ = [
-    '../_base_/schedules/cosine.py', '../_base_/default_runtime.py',
+    '../_base_/default_runtime.py',
+    '../_base_/schedules/cyclic.py',
     '../_base_/datasets/zd_od128.py'
 ]
 custom_imports = dict(
@@ -18,7 +19,7 @@ VOXEL_GRID_SIZE = [
 ]
 
 BATCH_SIZE = 2
-BASE_LR = 0.001
+BASE_LR = 1e-4
 EPOCHS = 36
 
 ###############################################################################

@@ -1,10 +1,5 @@
 # optimizer
-lr = 0.003  # max learning rate
-optimizer = dict(
-    type='AdamW',
-    lr=lr,
-    betas=(0.95, 0.99),  # the momentum is change during training
-    weight_decay=0.001)
+optimizer = dict(type='AdamW', lr=1e-3, weight_decay=0.001)
 optimizer_config = dict(grad_clip=dict(max_norm=10, norm_type=2))
 
 lr_config = dict(
