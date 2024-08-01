@@ -1,15 +1,14 @@
-_base_ = ['./dv01_second_center_head.py']
+from configs.centerpoint.hv01_second_secfpn_baseline import VOXEL_SIZE, POINT_CLOUD_RANGE
 
-voxel_size = [0.1, 0.1, 0.2]
-point_cloud_range = [-82.4, -57.6, -3.0, 122.4, 57.6, 5.0]
+_base_ = ['./cbgs_dv01_second_secfpn_dcn.py']
 
 model = dict(
     pts_encoder=dict(
         type='VoxelSetAbstraction',
         num_keypoints=2048,
         fused_out_channel=128,
-        voxel_size=voxel_size,
-        point_cloud_range=point_cloud_range,
+        voxel_size=VOXEL_SIZE,
+        point_cloud_range=POINT_CLOUD_RANGE,
         voxel_sa_cfgs_list=[
             dict(
                 type='StackedSAModuleMSG',

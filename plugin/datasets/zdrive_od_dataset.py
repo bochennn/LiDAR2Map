@@ -24,6 +24,32 @@ class ZDriveDataset(NuScenesDataset):
         'unknown': 'Unknown'
     }
 
+    def __init__(self,
+                 ann_file: str,
+                 pipeline: List[Dict] = None,
+                 data_root: str = None,
+                 classes: List[str] = None,
+                 load_interval: int = 1,
+                 with_velocity: bool = False,
+                 modality: Dict = None,
+                 box_type_3d: str = 'LiDAR',
+                 filter_empty_gt: bool = False,
+                 test_mode: bool = False,
+                 use_valid_flag: bool = True,
+                 logger: Logger = None):
+        super().__init__(
+            ann_file=ann_file,
+            pipeline=pipeline,
+            data_root=data_root,
+            classes=classes,
+            load_interval=load_interval,
+            with_velocity=with_velocity,
+            modality=modality,
+            box_type_3d=box_type_3d,
+            filter_empty_gt=filter_empty_gt,
+            test_mode=test_mode,
+            use_valid_flag=use_valid_flag)
+
     def get_data_info(self, index):
         """Get data info according to the given index.
 

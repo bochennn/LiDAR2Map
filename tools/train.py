@@ -130,22 +130,17 @@ def main():
         # apply the linear scaling rule (https://arxiv.org/abs/1706.02677)
         cfg.optimizer['lr'] = cfg.optimizer['lr'] * len(cfg.gpu_ids) / 8
 
+    timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime())
+
     # create work_dir
     mmcv.mkdir_or_exist(osp.abspath(cfg.work_dir))
     # dump config
     cfg.dump(osp.join(cfg.work_dir, osp.basename(args.config)))
     # init the logger before other steps
-    timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime())
     log_file = osp.join(cfg.work_dir, f'{timestamp}.log')
-    # specify logger name, if we still use 'mmdet', the output info will be
-    # filtered and won't be saved in the log_file
-    # TODO: ugly workaround to judge whether we are training det or seg model
-    if cfg.model.type in ['EncoderDecoder3D']:
-        logger_name = 'mmseg'
-    else:
-        logger_name = 'mmdet'
+
     logger = get_root_logger(
-        log_file=log_file, log_level=cfg.log_level, name=logger_name)
+        log_file=log_file, log_level=cfg.log_level, name='mmdet')
 
     # init the meta dict to record some important information such as
     # environment info and seed, which will be logged
@@ -183,7 +178,10 @@ def main():
         model = convert_sync_batchnorm(model)
 
     logger.info(f'Model:\n{model}')
-    datasets = [build_dataset(cfg.data.train)]
+
+    # cfg.data.train.logger = logger
+    datasets = [build_dataset(cfg.data.train, dict(logger=logger))]
+
     if len(cfg.workflow) == 2:
         val_dataset = copy.deepcopy(cfg.data.val)
         # in case we use a dataset wrapper

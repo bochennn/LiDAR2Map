@@ -182,7 +182,7 @@ def _fill_trainval_infos(clip_root: Path, max_sweeps: int = 10, progressbar: str
         out_info['gt_names'] = np.array([a['category'] for a in od_ann_info])
         out_info['track_ids'] = np.array([a['track_id'] for a in od_ann_info])
         out_info['num_lidar_pts'] = np.array([a['num_lidar_pts'] for a in od_ann_info])
-        out_info['valid_flag'] = np.array([a['num_lidar_pts'] > 0 and a['category'] != 'unknown'
+        out_info['valid_flag'] = np.array([a['num_lidar_pts'] > 5 and a['category'] != 'unknown'
                  for a in od_ann_info], dtype=bool)
 
         # box_list.append(out_info['gt_boxes'])

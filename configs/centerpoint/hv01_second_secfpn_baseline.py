@@ -1,35 +1,40 @@
+from configs._base_.datasets.zd_od128 import CLASS_NAMES
 _base_ = [
     '../_base_/schedules/cosine.py', '../_base_/default_runtime.py',
-    '../_base_/datasets/zd-od-128.py'
+    '../_base_/datasets/zd_od128.py'
 ]
 custom_imports = dict(
     imports=['plugin.models.detectors.centerpoint'],
     allow_failed_imports=False)
 
-voxel_size = [0.1, 0.1, 0.2]
-point_cloud_range = [-82.4, -57.6, -3.0, 122.4, 57.6, 5.0]
-grid_size = [
-    int((point_cloud_range[3] - point_cloud_range[0]) / voxel_size[0]),
-    int((point_cloud_range[4] - point_cloud_range[1]) / voxel_size[1]),
-    int((point_cloud_range[5] - point_cloud_range[2]) / voxel_size[2]),
+VOXEL_SIZE = [0.1, 0.1, 0.2]
+# _point_cloud_range = [-82.4, -57.6, -3.0, 122.4, 57.6, 5.0]
+POINT_CLOUD_RANGE = [-82.4, -76.8, -3.0, 122.4, 76.8, 5.0]
+# 2048, 1536, 40
+VOXEL_GRID_SIZE = [
+    int((POINT_CLOUD_RANGE[3] - POINT_CLOUD_RANGE[0] + 1e-9) / VOXEL_SIZE[0]),
+    int((POINT_CLOUD_RANGE[4] - POINT_CLOUD_RANGE[1] + 1e-9) / VOXEL_SIZE[1]),
+    int((POINT_CLOUD_RANGE[5] - POINT_CLOUD_RANGE[2] + 1e-9) / VOXEL_SIZE[2]),
 ]
 
-class_names = [
-    'car', 'pickup_truck', 'truck', 'construction_vehicle', 'bus',
-    'tricycle', 'motorcycle', 'bicycle', 'person', 'traffic_cone'
-]
+BATCH_SIZE = 2
+BASE_LR = 0.001
+EPOCHS = 36
 
+###############################################################################
+# MODEL
+###############################################################################
 model = dict(
     type='CenterPoint',
     pts_voxel_layer=dict(
         max_num_points=10, max_voxels=(90000, 120000),
-        voxel_size=voxel_size,
-        point_cloud_range=point_cloud_range),
+        voxel_size=VOXEL_SIZE,
+        point_cloud_range=POINT_CLOUD_RANGE),
     pts_voxel_encoder=dict(type='HardSimpleVFE', num_features=4),
     pts_middle_encoder=dict(
         type='SparseEncoder',
         in_channels=4,
-        sparse_shape=[grid_size[2] + 1, grid_size[1], grid_size[0]],
+        sparse_shape=[VOXEL_GRID_SIZE[2] + 1, VOXEL_GRID_SIZE[1], VOXEL_GRID_SIZE[0]],
         output_channels=128,
         order=('conv', 'norm', 'act'),
         encoder_channels=((16, 16, 32), (32, 32, 64), (64, 64, 128), (128, 128)),
@@ -66,9 +71,9 @@ model = dict(
         share_conv_channel=64,
         bbox_coder=dict(
             type='CenterPointBBoxCoder',
-            pc_range=point_cloud_range[:2],
+            pc_range=POINT_CLOUD_RANGE[:2],
             out_size_factor=8,
-            voxel_size=voxel_size[:2],
+            voxel_size=VOXEL_SIZE[:2],
             post_center_range=[-85.2, -65.2, -10.0, 125.2, 65.2, 10.0],
             max_num=500,
             score_threshold=0.1,
@@ -81,9 +86,9 @@ model = dict(
     # model training and testing settings
     train_cfg=dict(
         pts=dict(
-            point_cloud_range=point_cloud_range,
-            grid_size=grid_size,
-            voxel_size=voxel_size,
+            point_cloud_range=POINT_CLOUD_RANGE,
+            grid_size=VOXEL_GRID_SIZE,
+            voxel_size=VOXEL_SIZE,
             out_size_factor=8,
             dense_reg=1,
             gaussian_overlap=0.1,
@@ -98,41 +103,46 @@ model = dict(
             min_radius=[4, 12, 10, 0.85, 0.175],
             score_threshold=0.1,
             out_size_factor=8,
-            voxel_size=voxel_size[:2],
+            voxel_size=VOXEL_SIZE[:2],
             nms_type='rotate',
             pre_max_size=1000,
             post_max_size=83,
-            nms_thr=0.2)))
+            nms_thr=0.2))
+)
 
+###############################################################################
+# DATASET
+###############################################################################
 train_pipeline = [
     dict(type='LoadPointsFromFile',
          load_dim=4, use_dim=4, convert_ego=True),
     dict(type='LoadAnnotations3D',
          with_bbox_3d=True, with_label_3d=True),
-    dict(type='PointsRangeFilter', point_cloud_range=point_cloud_range),
-    dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
-    dict(type='ObjectNameFilter', classes=class_names),
-    dict(type='DefaultFormatBundle3D', class_names=class_names),
-    dict(type='Collect3D', keys=['points', 'gt_bboxes_3d', 'gt_labels_3d'])
+    dict(type='PointsRangeFilter',
+         point_cloud_range=POINT_CLOUD_RANGE),
+    dict(type='ObjectRangeFilter',
+         point_cloud_range=POINT_CLOUD_RANGE),
+    dict(type='ObjectNameFilter', classes=CLASS_NAMES),
+    dict(type='DefaultFormatBundle3D', class_names=CLASS_NAMES),
+    dict(type='Collect3D',
+         keys=['points', 'gt_bboxes_3d', 'gt_labels_3d'])
 ]
-
 eval_pipeline = [
     dict(type='LoadPointsFromFile',
-         load_dim=4, use_dim=4, convert_ego=True),
-    # dict(type='LoadAnnotations3D',
-    #      with_bbox_3d=True, with_label_3d=True),
-    dict(type='PointsRangeFilter', point_cloud_range=point_cloud_range),
-    dict(type='DefaultFormatBundle3D', class_names=class_names),
+            load_dim=4, use_dim=4, convert_ego=True),
+    dict(type='PointsRangeFilter',
+            point_cloud_range=POINT_CLOUD_RANGE),
+    dict(type='DefaultFormatBundle3D', class_names=CLASS_NAMES),
     dict(type='Collect3D', keys=['points'])
 ]
 
 data = dict(
-    samples_per_gpu=2,
-    workers_per_gpu=8,
+    samples_per_gpu=BATCH_SIZE,
     train=dict(pipeline=train_pipeline),
     val=dict(pipeline=eval_pipeline),
     test=dict(pipeline=eval_pipeline)
 )
 
-optimizer = dict(lr=0.001)
-runner = dict(max_epochs=36)
+optimizer = dict(lr=BASE_LR)
+runner = dict(max_epochs=EPOCHS)
+evaluation = dict(pipeline=eval_pipeline)
