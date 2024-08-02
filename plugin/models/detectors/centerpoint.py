@@ -34,7 +34,7 @@ class CenterPoint(MVXTwoStageDetector, _CenterPoint):
         """bool: Whether the detector has a RoI Head in 3D branch."""
         return hasattr(self, 'pts_roi_head') and self.pts_roi_head is not None
 
-    def extract_pts_feat(self, pts: List[torch.Tensor]):
+    def extract_pts_feat(self, pts: List[torch.Tensor], img_feats = None, img_metas = None) -> torch.Tensor:
         """Extract features of points."""
         voxel_dict = self.voxelize(pts)
         feats_dict = self.pts_voxel_encoder(**voxel_dict)
@@ -71,12 +71,9 @@ class CenterPoint(MVXTwoStageDetector, _CenterPoint):
             dict: Losses of different branches.
         """
         pts_feats = self.extract_pts_feat(points)
-
-        print(type(pts_feats), len(pts_feats))
-
-        losses = self.forward_pts_train(pts_feats, gt_bboxes_3d,
-                                        gt_labels_3d, gt_bboxes_ignore,
-                                        points, img_metas)
+        losses = self.forward_pts_train(pts_feats, gt_bboxes_3d, gt_labels_3d,
+                                        gt_bboxes_ignore=gt_bboxes_ignore,
+                                        points=points, img_metas=img_metas)
         return losses
 
     def forward_pts_train(self,

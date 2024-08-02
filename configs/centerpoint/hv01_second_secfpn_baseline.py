@@ -4,9 +4,7 @@ _base_ = [
     '../_base_/schedules/cyclic.py',
     '../_base_/datasets/zd_od128.py'
 ]
-custom_imports = dict(
-    imports=['plugin.models.detectors.centerpoint'],
-    allow_failed_imports=False)
+custom_imports = dict(imports=['plugin.models'], allow_failed_imports=False)
 
 VOXEL_SIZE = [0.1, 0.1, 0.2]
 # _point_cloud_range = [-82.4, -57.6, -3.0, 122.4, 57.6, 5.0]

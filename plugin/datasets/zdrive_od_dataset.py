@@ -21,11 +21,10 @@ class ZDriveDataset(NuScenesDataset):
         'truck': 'Truck',
         'pickup_truck': 'Truck',
         'construction_vehicle': 'Truck',
-        'unknown': 'Unknown'
     }
 
     def __init__(self,
-                 ann_file: str,
+                 ann_files: List[str],
                  pipeline: List[Dict] = None,
                  data_root: str = None,
                  classes: List[str] = None,
@@ -37,6 +36,12 @@ class ZDriveDataset(NuScenesDataset):
                  test_mode: bool = False,
                  use_valid_flag: bool = True,
                  logger: Logger = None):
+
+        if isinstance(ann_files, list):
+            ann_file, self.additional_ann = ann_files[0], ann_files[1:]
+        else:
+            ann_file, self.additional_ann = ann_files, []
+
         super().__init__(
             ann_file=ann_file,
             pipeline=pipeline,
@@ -49,6 +54,28 @@ class ZDriveDataset(NuScenesDataset):
             filter_empty_gt=filter_empty_gt,
             test_mode=test_mode,
             use_valid_flag=use_valid_flag)
+
+    def load_annotations(self, ann_file: str) -> List[Dict]:
+        """Load annotations from ann_file.
+
+        Args:
+            ann_file (str): Path of the annotation file.
+
+        Returns:
+            list[dict]: List of annotations sorted by timestamps.
+        """
+        data = mmcv.load(ann_file, file_format='pkl')
+        data_infos = data['infos']
+        self.metadata = data['metadata']
+        self.version = self.metadata['version']
+
+        if len(self.additional_ann) > 0:
+            for f in self.additional_ann:
+                data_infos.extend(mmcv.load(open(f, 'rb'), file_format='pkl')['infos'])
+
+        data_infos = list(sorted(data_infos, key=lambda e: e['timestamp']))
+        data_infos = data_infos[::self.load_interval]
+        return data_infos
 
     def get_data_info(self, index):
         """Get data info according to the given index.

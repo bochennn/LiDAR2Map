@@ -7,8 +7,8 @@ from mmdet3d.models.builder import NECKS
 from mmdet3d.models.necks.second_fpn import SECONDFPN as _SECONDFPN
 
 
-@NECKS.register_module(force=True)
-class GeneralizedFPN(_SECONDFPN):
+@NECKS.register_module()
+class MultiScaleFPN(_SECONDFPN):
 
     def __init__(
         self, in_channels, out_channels,
@@ -18,9 +18,9 @@ class GeneralizedFPN(_SECONDFPN):
         norm_cfg: Dict = None,
         **kwargs
     ):
-        super(GeneralizedFPN, self).__init__(in_channels=in_channels,
-                                    out_channels=out_channels, norm_cfg=norm_cfg,
-                                    **kwargs)
+        super(MultiScaleFPN, self).__init__(
+            in_channels=in_channels, out_channels=out_channels,
+            norm_cfg=norm_cfg, **kwargs)
 
         if end_level == -1:
             self.backbone_end_level = len(in_channels) - 1
