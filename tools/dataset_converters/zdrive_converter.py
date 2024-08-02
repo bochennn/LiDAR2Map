@@ -51,6 +51,22 @@ USING_LIDAR = [
     # 'lidar2',   # lidar front
     # 'lidar3',   # lidar right
 ]
+CLASS_NAMES = {
+    'traffic_warning': 'traffic_warning',
+    'traffic_cone': 'traffic_cone',
+    'barrier': 'barrier',
+    'person': 'person',
+    'bicycle': 'bicycle',
+    'tricycle': 'tricycle',
+    'motorcycle': 'motorcycle',
+    'car': 'car',
+    'pickup_truck': 'pickup_truck',
+    'recreational_vehicle': 'recreational_vehicle',
+    'Recreational_vehicle': 'recreational_vehicle',
+    'construction_vehicle': 'construction_vehicle',
+    'bus': 'bus',
+    'truck': 'truck'
+}
 
 VIRTUAL2IMU = transform_matrix(
     [0., 0., 0.36],
@@ -87,7 +103,7 @@ def create_zdrive_infos(root_path: Path, out_dir: Path, batch_name: str, workers
     print(f'Num Clips: {metadata["num_clips"]}, '\
           f'Num Frames: {metadata["num_frames"]}\n'\
           f'Write info into {write_info_path}')
-    data = dict(infos=info_list, metadata=metadata)
+    data = dict(infos=info_list_by_frame, metadata=metadata)
     with open(write_info_path, 'wb') as f:
         pickle.dump(data, f)
 
@@ -98,7 +114,7 @@ def _fill_trainval_infos(clip_root: Path, max_sweeps: int = 10, progressbar: str
         from common.fileio import read_points_pcd
         from visualization import show_o3d
 
-    imu2lidar_dict = yaml.safe_load((clip_root / LIDAR2IMU_FILEPATH).read_text())
+    imu2lidar_dict = yaml.safe_load((clip_root / LIDAR2IMU_FILEPATH).read_text().replace('\t', '    '))
     imu2lidar = transform_matrix(
         list(imu2lidar_dict['transform']['translation'].values()),
         Rotation.from_quat(list(imu2lidar_dict['transform']['rotation'].values())).as_matrix()
@@ -192,11 +208,41 @@ def _fill_trainval_infos(clip_root: Path, max_sweeps: int = 10, progressbar: str
                 np.concatenate([locs, dims, rots[:, 2:3]], axis=1), lidar2ego)
         else:
             out_info['gt_boxes'] = np.zeros((0, 7))
-        out_info['gt_names'] = np.array([a['category'] for a in od_ann_info])
+
+        valid_flag = []
+        for ann in od_ann_info:
+            is_valid = True
+            if ann['num_lidar_pts'] < 5:
+                is_valid = False
+            elif ann['category'] not in CLASS_NAMES:
+                is_valid = False
+            elif ann['is_group']:
+                is_valid = False
+            elif ann['category'] in ['car', 'pickup_truck'] and \
+                (ann['size'][0] > 8 or ann['size'][0] < 1 or ann['size'][1] > 2.3 or ann['size'][1] < 1):
+                is_valid = False
+            elif ann['category'] in ['bicycle', 'tricycle', 'motorcycle'] and \
+                (ann['size'][0] > 6 or ann['size'][1] > 1.5):
+                is_valid = False
+            elif ann['category'] in ['truck', 'bus'] and \
+                (ann['size'][0] > 30 or ann['size'][0] < 2 or ann['size'][1] > 6 or ann['size'][1] < 1):
+                is_valid = False
+            elif ann['category'] in ['construction_vehicle'] and \
+                (ann['size'][0] < 1 or ann['size'][1] > 6):
+                is_valid = False
+            elif ann['category'] in ['person'] and \
+                (ann['size'][0] > 1.5 or ann['size'][1] > 1.5):
+                is_valid = False
+            elif ann['category'] in ['traffic_cone'] and \
+                (ann['size'][0] > 1 or ann['size'][1] > 1):
+                is_valid = False
+            valid_flag.append(is_valid)
+
+        out_info['valid_flag'] = np.asarray(valid_flag, dtype=bool)
+        out_info['gt_names'] = np.array([CLASS_NAMES[a['category']] if is_valid else 'ignore'
+            for is_valid, a in zip(out_info['valid_flag'], od_ann_info)])
         out_info['track_ids'] = np.array([a['track_id'] for a in od_ann_info])
         out_info['num_lidar_pts'] = np.array([a['num_lidar_pts'] for a in od_ann_info])
-        out_info['valid_flag'] = np.array([a['num_lidar_pts'] > 5 and a['category'] != 'unknown'
-                 for a in od_ann_info], dtype=bool)
 
         info_list.append(out_info)
 
