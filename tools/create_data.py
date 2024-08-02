@@ -13,7 +13,7 @@ def nuscenes_data_prep(root_path: Path,
                        info_prefix: str,
                        version: str,
                        dataset_name: str = 'NuScenesDataset',
-                       max_sweeps=10):
+                       max_sweeps: int = 10):
     """Prepare data related to nuScenes dataset.
 
     Related data consists of '.pkl' files recording basic infos,
@@ -47,45 +47,30 @@ def nuscenes_data_prep(root_path: Path,
     #                             f'{info_prefix}_infos_train.pkl')
 
 
-def zdrive_data_prep(root_path: Path,
-                     out_dir: Path,
-                     info_prefix: str,
-                     workers: int = 8):
-
-    batch_names = [
-        'E03-CITY-20240702-undownloaded',
-        'NON-E03-CITY-20240702-undownloaded',
-    ]
-    zdrive_converter.create_zdrive_infos(root_path,
-                                         out_dir,
-                                         info_prefix,
-                                         batch_names,
-                                         workers)
+def zdrive_data_prep(root_path: Path, out_dir: Path,
+                     batch_names: str, workers: int = 8):
+    for batch_name in batch_names:
+        zdrive_converter.create_zdrive_infos(root_path, out_dir, batch_name, workers)
 
 
 if __name__ == '__main__':
-    # from mmengine.registry import init_default_scope
-    # init_default_scope('mmdet3d')
     parser = argparse.ArgumentParser(description='Data converter arg parser')
     parser.add_argument('dataset', metavar='nuscenes', help='name of the dataset')
     parser.add_argument('--root-path', type=Path, help='specify the root path of dataset')
     parser.add_argument('--version', type=str, default='v1.0',
                         required=False, help='specify the dataset version, no need for kitti')
-    parser.add_argument('--max-sweeps', type=int, default=10,
-                        required=False, help='specify sweeps of lidar per example')
     parser.add_argument('--out-dir', type=Path, default='./data', help='name of info pkl')
-    # parser.add_argument('--extra-tag', type=str, default='nuscenes')
     parser.add_argument('--workers', type=int, default=4, help='number of threads to be used')
     parser.add_argument('--only-gt-database', action='store_true',
                         help='''Whether to only generate ground truth database.
                                 Only used when dataset is NuScenes or Waymo!''')
     args = parser.parse_args()
 
-    if args.only_gt_database:
-        create_groundtruth_database('NuScenesDataset', args.root_path,
-                                    args.extra_tag,
-                                    f'{args.extra_tag}_infos_train.pkl')
-        exit(0)
+    # if args.only_gt_database:
+    #     create_groundtruth_database('NuScenesDataset', args.root_path,
+    #                                 args.extra_tag,
+    #                                 f'{args.extra_tag}_infos_train.pkl')
+    #     exit(0)
 
     if args.dataset == 'nuscenes':
         nuscenes_data_prep(
@@ -93,13 +78,19 @@ if __name__ == '__main__':
             out_dir=args.out_dir / args.dataset,
             info_prefix=args.dataset,
             version=f'{args.version}', # trainval,
-            dataset_name='NuScenesDataset',
-            max_sweeps=args.max_sweeps)
+            dataset_name='NuScenesDataset')
     elif args.dataset == 'zdrive':
         zdrive_data_prep(
             root_path=args.root_path,
             out_dir=args.out_dir / args.dataset,
-            info_prefix=args.dataset,
+            batch_names=[
+                'CITY-3D-0529-undownloaded',
+                'E03-CITY-20240702-undownloaded',
+                'E03-HY-20240702-undownloaded',
+                'HY-3D-0529-undownloaded',
+                'NON-E03-CITY-20240702-undownloaded',
+                'NON-E03-HY-20240702-undownloaded',
+            ],
             workers=args.workers)
     else:
         raise NotImplementedError(f'Don\'t support {args.dataset} dataset.')

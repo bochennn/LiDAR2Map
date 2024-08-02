@@ -1,8 +1,35 @@
 from configs.centerpoint.hv01_second_secfpn_baseline import VOXEL_SIZE, POINT_CLOUD_RANGE
 
-_base_ = ['./cbgs_dv01_second_secfpn_dcn.py']
+# _base_ = ['./cbgs_dv01_second_secfpn_dcn.py']
+_base_ = ['./dv01_second_secfpn.py']
 
 model = dict(
+    # pts_voxel_encoder=dict(
+    #     type='PillarFeatureNet',
+    #     in_channels=5,
+    #     feat_channels=[64],
+    #     with_distance=False,
+    #     voxel_size=,
+    #     norm_cfg=dict(type='BN1d', eps=1e-3, momentum=0.01),
+    #     legacy=False),
+    # pts_middle_encoder=dict(
+    #     type='PointPillarsScatter', in_channels=64, output_shape=(512, 512)),
+    pts_backbone=dict(
+        type='SECOND',
+        in_channels=256,
+        out_channels=[256, 256, 512],
+        layer_nums=[3, 5, 5],
+        layer_strides=[1, 2, 2],
+        norm_cfg=dict(type='BN', eps=1e-3, momentum=0.01),
+        conv_cfg=dict(type='Conv2d', bias=False)),
+    pts_neck=dict(
+        type='PAFPN',
+        in_channels=[256, 256, 512],
+        out_channels=[256, 256, 256],
+        upsample_strides=[2, 2, 2],
+        norm_cfg=dict(type='BN', eps=1e-3, momentum=0.01),
+        upsample_cfg=dict(type='deconv', bias=False),
+        use_conv_for_no_stride=True),
     pts_encoder=dict(
         type='VoxelSetAbstraction',
         num_keypoints=2048,
@@ -102,32 +129,13 @@ model = dict(
                 loss_weight=1.0))),
     train_cfg=dict(
         rcnn=dict(
-            assigner=[
-                dict(  # for Pedestrian
-                    type='Max3DIoUAssigner',
-                    iou_calculator=dict(
-                        type='BboxOverlaps3D', coordinate='lidar'),
-                    pos_iou_thr=0.55,
-                    neg_iou_thr=0.55,
-                    min_pos_iou=0.55,
-                    ignore_iof_thr=-1),
-                dict(  # for Cyclist
-                    type='Max3DIoUAssigner',
-                    iou_calculator=dict(
-                        type='BboxOverlaps3D', coordinate='lidar'),
-                    pos_iou_thr=0.55,
-                    neg_iou_thr=0.55,
-                    min_pos_iou=0.55,
-                    ignore_iof_thr=-1),
-                dict(  # for Car
-                    type='Max3DIoUAssigner',
-                    iou_calculator=dict(
-                        type='BboxOverlaps3D', coordinate='lidar'),
-                    pos_iou_thr=0.55,
-                    neg_iou_thr=0.55,
-                    min_pos_iou=0.55,
-                    ignore_iof_thr=-1)
-            ],
+            assigner=dict(
+                type='Max3DIoUAssigner',
+                iou_calculator=dict(type='BboxOverlaps3D', coordinate='lidar'),
+                pos_iou_thr=0.55,
+                neg_iou_thr=0.55,
+                min_pos_iou=0.55,
+                ignore_iof_thr=-1),
             sampler=dict(
                 type='IoUNegPiecewiseSampler',
                 num=128,

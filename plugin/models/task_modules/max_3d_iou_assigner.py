@@ -1,5 +1,5 @@
 # Copyright (c) OpenMMLab. All rights reserved.
-from typing import Optional, Union
+from typing import Optional, Union, Dict
 
 from mmdet.core.bbox.assigners import AssignResult, MaxIoUAssigner
 from mmdet.core.bbox.builder import BBOX_ASSIGNERS
@@ -65,8 +65,8 @@ class Max3DIoUAssigner(MaxIoUAssigner):
         self.iou_calculator = build_iou_calculator(iou_calculator)
 
     def assign(self,
-               pred_instances,
-               gt_instances,
+               pred_instances: Dict,
+               gt_instances: Dict,
                gt_instances_ignore = None,
                **kwargs) -> AssignResult:
         """Assign gt to bboxes.
@@ -115,14 +115,14 @@ class Max3DIoUAssigner(MaxIoUAssigner):
             >>> expected_gt_inds = torch.LongTensor([1, 0])
             >>> assert torch.all(assign_result.gt_inds == expected_gt_inds)
         """
-        gt_bboxes = gt_instances.bboxes_3d
+        gt_bboxes = gt_instances['bboxes_3d']
         if 'priors' in pred_instances:
-            priors = pred_instances.priors
+            priors = pred_instances['priors']
         else:
-            priors = pred_instances.bboxes_3d.tensor
-        gt_labels = gt_instances.labels_3d
+            priors = pred_instances['bboxes_3d'].tensor
+        gt_labels = gt_instances['labels_3d']
         if gt_instances_ignore is not None:
-            gt_bboxes_ignore = gt_instances_ignore.bboxes_3d
+            gt_bboxes_ignore = gt_instances_ignore['bboxes_3d']
         else:
             gt_bboxes_ignore = None
 

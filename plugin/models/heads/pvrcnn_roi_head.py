@@ -8,9 +8,6 @@ from mmdet.core.bbox.builder import build_assigner, build_sampler
 from mmdet3d.models.roi_heads.base_3droi_head import Base3DRoIHead
 from torch.nn import functional as F
 
-# from mmdet3d.structures.det3d_data_sample import SampleList
-# from mmdet3d.utils import InstanceList
-
 
 @HEADS.register_module()
 class PVRCNNRoiHead(Base3DRoIHead):
@@ -57,7 +54,7 @@ class PVRCNNRoiHead(Base3DRoIHead):
                        'semantic_head') and self.semantic_head is not None
 
     def loss(self, feats_dict: dict, rpn_results_list,
-             batch_data_samples, **kwargs) -> dict:
+             gt_bboxes_3d, gt_labels_3d, **kwargs) -> dict:
         """Training forward function of PVRCNNROIHead.
 
         Args:
@@ -78,18 +75,20 @@ class PVRCNNRoiHead(Base3DRoIHead):
         """
         losses = dict()
         batch_gt_instances_3d = []
-        batch_gt_instances_ignore = []
-        for data_sample in batch_data_samples:
-            batch_gt_instances_3d.append(data_sample.gt_instances_3d)
-            if 'ignored_instances' in data_sample:
-                batch_gt_instances_ignore.append(data_sample.ignored_instances)
-            else:
-                batch_gt_instances_ignore.append(None)
-        if self.with_semantic:
-            semantic_results = self._semantic_forward_train(
-                feats_dict['keypoint_features'], feats_dict['keypoints'],
-                batch_gt_instances_3d)
-            losses['loss_semantic'] = semantic_results['loss_semantic']
+        # batch_gt_instances_ignore = []
+        # for data_sample in batch_data_samples:
+        for bboxed_3d, labels_3d in zip(gt_bboxes_3d, gt_labels_3d):
+            batch_gt_instances_3d.append(dict(bboxes_3d=bboxed_3d, labels_3d=labels_3d))
+            # batch_gt_instances_3d.append(data_sample.gt_instances_3d)
+            # if 'ignored_instances' in data_sample:
+            #     batch_gt_instances_ignore.append(data_sample.ignored_instances)
+            # else:
+            #     batch_gt_instances_ignore.append(None)
+        # if self.with_semantic:
+        #     semantic_results = self._semantic_forward_train(
+        #         feats_dict['keypoint_features'], feats_dict['keypoints'],
+        #         batch_gt_instances_3d)
+        #     losses['loss_semantic'] = semantic_results['loss_semantic']
 
         sample_results = self._assign_and_sample(rpn_results_list,
                                                  batch_gt_instances_3d)
@@ -183,7 +182,15 @@ class PVRCNNRoiHead(Base3DRoIHead):
                       gt_labels,
                       gt_bboxes_ignore=None,
                       **kwargs):
-        raise NotImplementedError
+        
+        batch_gt_instances_3d = []
+        for gt_box, gt_label in zip(gt_bboxes, gt_labels):
+            batch_gt_instances_3d.append(dict(
+                bboxes_3d=gt_box, labels_3d=gt_label))
+        sample_results = self._assign_and_sample(proposal_list,
+                                                 batch_gt_instances_3d)
+
+        return
 
     def _bbox_forward_train(self, seg_preds: torch.Tensor,
                             keypoint_features: torch.Tensor,
@@ -241,7 +248,7 @@ class PVRCNNRoiHead(Base3DRoIHead):
         return bbox_results
 
     def _assign_and_sample(
-            self, proposal_list: List,
+            self, proposal_list: List[Dict],
             batch_gt_instances_3d) -> List[SamplingResult]:
         """Assign and sample proposals for training.
 
@@ -259,15 +266,17 @@ class PVRCNNRoiHead(Base3DRoIHead):
         sampling_results = []
         # bbox assign
         for batch_idx in range(len(proposal_list)):
-            cur_proposal_list = proposal_list[batch_idx]
+            cur_proposal_list = dict(
+                bboxes_3d=proposal_list[batch_idx][0],
+                labels_3d=proposal_list[batch_idx][2])
             cur_boxes = cur_proposal_list['bboxes_3d']
             cur_labels_3d = cur_proposal_list['labels_3d']
-            cur_gt_instances_3d = batch_gt_instances_3d[batch_idx]
-            cur_gt_instances_3d.bboxes_3d = cur_gt_instances_3d.\
-                bboxes_3d.tensor
-            cur_gt_bboxes = batch_gt_instances_3d[batch_idx].bboxes_3d.to(
-                cur_boxes.device)
-            cur_gt_labels = batch_gt_instances_3d[batch_idx].labels_3d
+
+            cur_gt_instances_3d = dict(
+                bboxes_3d=batch_gt_instances_3d[batch_idx]['bboxes_3d'].tensor.to(cur_boxes.device),
+                labels_3d=batch_gt_instances_3d[batch_idx]['labels_3d'])
+            cur_gt_bboxes = cur_gt_instances_3d['bboxes_3d']
+            cur_gt_labels = cur_gt_instances_3d['labels_3d']
 
             batch_num_gts = 0
             # 0 is bg

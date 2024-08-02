@@ -9,10 +9,28 @@ from plugin.utils import *
 from scipy.spatial.transform import Rotation
 from tqdm import tqdm
 
-OD_ANNOTATION_PREFIX = [
-    '3d_city_object_detection_with_fish_eye',
-    'only_3d_city_object_detection',
-]
+
+def parse_23d_object_detection_anno_info(anno_dict: Dict, *args):
+    return anno_dict['3d_object_detection_annotated_info']\
+                    ['annotated_info']\
+                    ['3d_object_detection_info']\
+                    ['3d_object_detection_anns_info']
+
+
+def parse_3d_object_detection_anno_info(anno_dict: Dict, prefix: str):
+    return anno_dict[f'{prefix}_annotated_info']\
+                    ['annotated_info']\
+                    ['3d_object_detection_info']\
+                    ['3d_object_detection_anns_info']
+
+
+OD_ANNOTATION_PREFIX = {
+    '3d_city_object_detection_with_fish_eye': parse_3d_object_detection_anno_info,
+    '3d_highway_object_detection_with_fish_eye': parse_3d_object_detection_anno_info,
+    'only_3d_city_object_detection': parse_3d_object_detection_anno_info,
+    '23d_object_detection': parse_23d_object_detection_anno_info,
+}
+
 USING_CAMERA = [
     'camera0',  # cam_front_center
     # 'camera1',  # cam_front_center_tele
@@ -26,55 +44,59 @@ USING_CAMERA = [
     # 'camera9',  # cam_fisheye_front
     # 'camera10', # cam_fisheye_right
 ]
+
 USING_LIDAR = [
     'lidar0',   # lidar top
     # 'lidar1',   # lidar left
     # 'lidar2',   # lidar front
     # 'lidar3',   # lidar right
 ]
+
 VIRTUAL2IMU = transform_matrix(
-    [0., 0., 0.36], Rotation.from_rotvec([0, 0, -np.pi * 0.5]).as_matrix())
+    [0., 0., 0.36],
+    Rotation.from_rotvec([0, 0, -np.pi * 0.5]).as_matrix()
+)
 LIDAR2IMU_FILEPATH = 'extrinsics/lidar2imu/lidar2imu.yaml'
 
 
-def create_zdrive_infos(root_path: Path, out_dir: Path, info_prefix: str,
-                        batch_names: List[str], workers: int):
+def create_zdrive_infos(root_path: Path, out_dir: Path, batch_name: str, workers: int):
 
-    available_clips = get_available_scenes(root_path, batch_names)
-    val_scenes = Path('data/zdrive/val.txt').read_text().splitlines()
+    available_clips = get_available_scenes(root_path, batch_name)
     # progressbar = tqdm(total=len(available_clips))
 
-    info_list = multi_process_thread(
+    info_list_by_clip = multi_process_thread(
         _fill_trainval_infos,
         [dict(clip_root=clip, max_sweeps=10,
               progressbar='[{:6d}/{:6d}] {}'.format(ind, len(available_clips), clip.name))
             for ind, clip in enumerate(available_clips)],
         nprocess=workers)
 
-    train_zd_infos, val_zd_infos = [], []
-    for sub_info_list in info_list:
-        for info in sub_info_list:
-            if info['scene_name'] in val_scenes:
-                val_zd_infos.append(info)
-            else:
-                train_zd_infos.append(info)
+    info_list_by_frame = []
+    for info_list in info_list_by_clip:
+        info_list_by_frame.extend(info_list)
 
-    metadata = dict(version='')
-    print('train sample: {}, val sample: {}'.format(
-            len(train_zd_infos), len(val_zd_infos)))
-    data = dict(infos=train_zd_infos, metadata=metadata)
-
-    with open(out_dir / f'{info_prefix}_infos_train.pkl', 'wb') as f:
+    info_prefix = batch_name.replace('-undownloaded', '')
+    metadata = dict(
+        version=info_prefix,
+        num_clips=len(info_list_by_clip),
+        num_frames=len(info_list_by_frame)
+    )
+    write_info_path = out_dir / f'{info_prefix}_infos'\
+                                f'_clip_{metadata["num_clips"]}'\
+                                f'_frames_{metadata["num_frames"]}.pkl'
+    print(f'Num Clips: {metadata["num_clips"]}, '\
+          f'Num Frames: {metadata["num_frames"]}\n'\
+          f'Write info into {write_info_path}')
+    data = dict(infos=info_list, metadata=metadata)
+    with open(write_info_path, 'wb') as f:
         pickle.dump(data, f)
 
-    data['infos'] = val_zd_infos
-    with open(out_dir / f'{info_prefix}_infos_val.pkl', 'wb') as f:
-        pickle.dump(data, f)
 
-
-def _fill_trainval_infos(clip_root: Path, max_sweeps: int = 10, progressbar: str = '') -> List[Dict]:
-    # from visualization import show_o3d
-    # from common.fileio import read_points_pcd
+def _fill_trainval_infos(clip_root: Path, max_sweeps: int = 10, progressbar: str = '', vis: bool = False) -> List[Dict]:
+    """ """
+    if vis:
+        from common.fileio import read_points_pcd
+        from visualization import show_o3d
 
     imu2lidar_dict = yaml.safe_load((clip_root / LIDAR2IMU_FILEPATH).read_text())
     imu2lidar = transform_matrix(
@@ -89,7 +111,7 @@ def _fill_trainval_infos(clip_root: Path, max_sweeps: int = 10, progressbar: str
     clip_info = json.loads(list(ann_path.glob('clip_*.json'))[0].read_text())
 
     frame_indices = np.argsort([f['frame_name'] for f in clip_info['frames']])
-    info_list, pts_list, box_list, ref2global = [], [], [], None
+    info_list, pts_list, box_list, track_list, ref2global = [], [], [], [], None
 
     for frame_indx in tqdm(frame_indices, desc=progressbar):
         frame_info = clip_info['frames'][frame_indx]
@@ -135,7 +157,7 @@ def _fill_trainval_infos(clip_root: Path, max_sweeps: int = 10, progressbar: str
             )
             out_info['lidars'].update({lidar_token: lidar_info})
 
-        closest_ind = np.fabs(pose_timestamps - out_info['timestamp']).argmin()
+        closest_ind = np.fabs(pose_timestamps - out_info['timestamp'] * 1e-6).argmin()
         global2imu = transform_matrix(
             list(pose_record[closest_ind]['pose']['position'].values()),
             Rotation.from_quat([
@@ -157,17 +179,9 @@ def _fill_trainval_infos(clip_root: Path, max_sweeps: int = 10, progressbar: str
             ego2global
         )
 
-        # if ref2global is None:
-        #     ref2global = ego2global
-        # ego2ref = transform_offset(ego2global, ref2global)
-
-        # points = read_points_pcd(out_info['lidars']['lidar0']['filename'])
-        # points = convert_points(points, ego2ref @ lidar2ego)
-        # pts_list.append(points)
-
         # in lidar0 coordinate
-        annotations = frame_info['annotated_info'][f'{ann_path.stem}_annotated_info']
-        od_ann_info = annotations['annotated_info']['3d_object_detection_info']['3d_object_detection_anns_info']
+        od_ann_info = OD_ANNOTATION_PREFIX[ann_path.name](
+            frame_info['annotated_info'], ann_path.name)
 
         locs = np.array([a['obj_center_pos'] for a in od_ann_info]).reshape(-1, 3)
         dims = np.array([a['size'] for a in od_ann_info]).reshape(-1, 3)
@@ -176,7 +190,6 @@ def _fill_trainval_infos(clip_root: Path, max_sweeps: int = 10, progressbar: str
         if len(locs) > 0:
             out_info['gt_boxes'] = convert_boxes(
                 np.concatenate([locs, dims, rots[:, 2:3]], axis=1), lidar2ego)
-            # out_info['gt_boxes'] = convert_boxes(out_info['gt_boxes'], ego2ref)
         else:
             out_info['gt_boxes'] = np.zeros((0, 7))
         out_info['gt_names'] = np.array([a['category'] for a in od_ann_info])
@@ -185,24 +198,37 @@ def _fill_trainval_infos(clip_root: Path, max_sweeps: int = 10, progressbar: str
         out_info['valid_flag'] = np.array([a['num_lidar_pts'] > 5 and a['category'] != 'unknown'
                  for a in od_ann_info], dtype=bool)
 
-        # box_list.append(out_info['gt_boxes'])
         info_list.append(out_info)
-        # show_o3d([pts_list[0]], [{'box3d': box_list[0]}])
-        # show_o3d([np.vstack(pts_list)], [{'box3d': np.vstack(box_list)}])
+
+        if vis:
+            if ref2global is None:
+                ref2global = ego2global
+            ego2ref = transform_offset(ego2global, ref2global)
+
+            points = read_points_pcd(out_info['lidars']['lidar0']['filename'])
+            points = convert_points(points, ego2ref @ lidar2ego)
+            pts_list.append(points)
+            box_list.append(convert_boxes(out_info['gt_boxes'], ego2ref))
+            track_list.append(out_info['track_ids'])
+
+            # show_o3d([pts_list[-1]], [{'box3d': box_list[-1], 'labels': track_list[-1]}])
+    if vis:
+        show_o3d([np.vstack(pts_list)],
+                 [{'box3d': np.vstack(box_list),
+                   'labels': np.hstack(track_list)}])
     return info_list
 
 
-def get_available_scenes(root_path: Path, batch_names: List[str]) -> List[Path]:
+def get_available_scenes(root_path: Path, batch_name: str) -> List[Path]:
     clip_list = []
-    for n in batch_names:
-        for fpath in (root_path / n).glob('clip_*'):
-            if not fpath.is_dir():
-                continue
-            if not (fpath / 'annotation').exists():
-                continue
-            if not any([(fpath / 'annotation' / ann_prefix).exists()
-                for ann_prefix in OD_ANNOTATION_PREFIX]):
-                # print(list((fpath / 'annotation').glob('*')))
-                continue
-            clip_list.append(fpath)
+    for fpath in (root_path / batch_name).glob('clip_*'):
+        if not fpath.is_dir():
+            continue
+        if not (fpath / 'annotation').exists():
+            continue
+        if not any([(fpath / 'annotation' / ann_prefix).exists()
+            for ann_prefix in OD_ANNOTATION_PREFIX]):
+            # print(list((fpath / 'annotation').glob('*')))
+            continue
+        clip_list.append(fpath)
     return clip_list

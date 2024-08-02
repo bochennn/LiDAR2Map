@@ -1,5 +1,5 @@
 # Copyright (c) OpenMMLab. All rights reserved.
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 # import mmengine
 import torch
@@ -231,8 +231,15 @@ class VoxelSetAbstraction(BaseModule):
         keypoints = torch.stack(keypoints_list, dim=0)  # (B, M, 3)
         return keypoints
 
-    def forward(self, batch_inputs_dict: dict, feats_dict: dict,
-                rpn_results_list) -> dict:
+    def forward(
+        self,
+        bev_encode_features,
+        rpn_results_list: List,
+        points: List[torch.Tensor],
+        voxels_coors = None,
+        # batch_inputs_dict: Dict,
+        # feats_dict: Dict,
+    ) -> Dict:
         """Extract point-wise features from multi-input.
 
         Args:
@@ -254,12 +261,12 @@ class VoxelSetAbstraction(BaseModule):
                 - fusion_keypoint_features (torch.Tensor): Fusion
                     keypoint_features by point_feature_fusion_layer.
         """
-        points = batch_inputs_dict['points']
-        voxel_encode_features = feats_dict['multi_scale_3d_feats']
-        bev_encode_features = feats_dict['spatial_feats']
-        if self.voxel_center_as_source:
-            voxels_coors = batch_inputs_dict['voxels']['coors']
-        else:
+        # points = batch_inputs_dict['points']
+        # voxel_encode_features = feats_dict['multi_scale_3d_feats']
+        # bev_encode_features = feats_dict['spatial_feats']
+        if not self.voxel_center_as_source:
+            # voxels_coors = coors
+        # else:
             voxels_coors = None
         keypoints = self.sample_key_points(points, voxels_coors)
 

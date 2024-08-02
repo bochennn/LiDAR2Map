@@ -12,22 +12,28 @@ from torch.nn import functional as F
 @DETECTORS.register_module(force=True)
 class MVXTwoStageDetector(_MVXTwoStageDetector):
 
-    def __init__(
-        self,
-        pts_encoder: Optional[Dict] = None,
-        pts_roi_head: Optional[Dict] = None,
-        **kwargs
-    ):
-        super(MVXTwoStageDetector, self).__init__(**kwargs)
-        if pts_roi_head is not None:
-            self.pts_roi_head = build_head(pts_roi_head)
-        if pts_encoder is not None:
-            self.pts_encoder = build_middle_encoder(pts_encoder)
+    # def __init__(
+    #     self,
+    #     pts_encoder: Optional[Dict] = None,
+    #     pts_roi_head: Optional[Dict] = None,
+    #     train_cfg: Optional[Dict] = None,
+    #     test_cfg: Optional[Dict] = None,
+    #     **kwargs
+    # ):
+    #     super(MVXTwoStageDetector, self).__init__(
+    #         train_cfg=train_cfg, test_cfg=test_cfg, **kwargs)
+    #     if pts_roi_head is not None:
+    #         pts_roi_head.update(
+    #             train_cfg=train_cfg.get('rcnn'),
+    #             test_cfg=test_cfg.get('rcnn'))
+    #         self.pts_roi_head = build_head(pts_roi_head)
+    #     if pts_encoder is not None:
+    #         self.pts_encoder = build_middle_encoder(pts_encoder)
 
-    @property
-    def with_pts_roi_head(self):
-        """bool: Whether the detector has a RoI Head in 3D branch."""
-        return hasattr(self, 'pts_roi_head') and self.pts_roi_head is not None
+    # @property
+    # def with_pts_roi_head(self):
+    #     """bool: Whether the detector has a RoI Head in 3D branch."""
+    #     return hasattr(self, 'pts_roi_head') and self.pts_roi_head is not None
 
     @torch.no_grad()
     @force_fp32()
@@ -96,9 +102,6 @@ class MVXTwoStageDetector(_MVXTwoStageDetector):
         losses = self.pts_bbox_head.loss(gt_bboxes_3d=gt_bboxes_3d,
                                          gt_labels_3d=gt_labels_3d,
                                          preds_dicts=outs)
-        if self.with_pts_roi_head:
-            proposal_list = self.pts_bbox_head.get_bboxes(outs, img_metas)
-
         return losses
 
     def forward_test(
