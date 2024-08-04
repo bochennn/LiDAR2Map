@@ -15,6 +15,7 @@ class MultiScaleFPN(_SECONDFPN):
         start_level: int = 0,
         end_level: int = -1,
         no_norm_on_lateral: bool = False,
+        conv_cfg: Dict = None,
         norm_cfg: Dict = None,
         **kwargs
     ):

@@ -9,8 +9,11 @@ data = dict(
         type='CBGSWrapper',
         dataset=dict(
             type=DATASET_TYPE, classes=CLASS_NAMES,
-            data_root=INFO_ROOT, ann_file=f'{INFO_ROOT}/zdrive_infos_train.pkl',
+            data_root=INFO_ROOT,
+            ann_files=[
+                f'{INFO_ROOT}/E03-CITY-20240702_infos_clip_272_frames_10737.pkl',
+                f'{INFO_ROOT}/E03-HY-20240702_infos_clip_1250_frames_49491.pkl'],
             pipeline=train_pipeline)
     )
 )
-# runner = dict(max_epochs=EPOCHS)
+runner = dict(max_epochs=18)
