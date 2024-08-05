@@ -1,6 +1,6 @@
 CLASS_NAMES = [
     'car', 'pickup_truck', 'truck', 'construction_vehicle', 'bus',
-    'tricycle', 'motorcycle', 'bicycle', 'person',  'traffic_cone'
+    'tricycle', 'motorcycle', 'bicycle', 'person', 'traffic_cone'
 ]
 
 DATASET_TYPE = 'ZDriveDataset'

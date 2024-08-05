@@ -41,7 +41,7 @@ class CBGSWrapper(CBGSDataset):
         sample_indices = []
         frac = 1.0 / len(self.CLASSES)
         for cat_id, cls_inds in class_sample_idxs.items():
-            sample_ratio = frac / class_distribution[cat_id]
+            sample_ratio = frac / class_distribution[cat_id] if class_distribution[cat_id] > 0 else 1
             # class_sample_idxs
             sample_indices += np.random.choice(
                 cls_inds, int(len(cls_inds) * sample_ratio)).tolist()

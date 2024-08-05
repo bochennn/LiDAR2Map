@@ -17,7 +17,7 @@ VOXEL_GRID_SIZE = [
 ]
 
 BATCH_SIZE = 2
-BASE_LR = 1e-4
+BASE_LR = 3e-4
 EPOCHS = 36
 
 ###############################################################################
@@ -58,7 +58,7 @@ model = dict(
     pts_bbox_head=dict(
         type='CenterHead',
         in_channels=sum([256, 256]),
-        tasks=[
+        tasks=[ # exact same order with CLASS_NAMES
             dict(num_class=1, class_names=['car']),
             dict(num_class=3, class_names=['pickup_truck', 'truck', 'construction_vehicle']),
             dict(num_class=1, class_names=['bus']),

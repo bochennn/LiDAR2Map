@@ -228,12 +228,8 @@ class CenterHead(_CenterHead):
                     x, y, z = task_boxes[idx][k][0], task_boxes[idx][k][
                         1], task_boxes[idx][k][2]
 
-                    coor_x = (
-                        x - pc_range[0]
-                    ) / voxel_size[0] / self.train_cfg['out_size_factor']
-                    coor_y = (
-                        y - pc_range[1]
-                    ) / voxel_size[1] / self.train_cfg['out_size_factor']
+                    coor_x = (x - pc_range[0]) / voxel_size[0] / self.train_cfg['out_size_factor']
+                    coor_y = (y - pc_range[1]) / voxel_size[1] / self.train_cfg['out_size_factor']
 
                     center = torch.tensor([coor_x, coor_y],
                                           dtype=torch.float32,

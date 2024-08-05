@@ -24,6 +24,23 @@ def parse_3d_object_detection_anno_info(anno_dict: Dict, prefix: str):
                     ['3d_object_detection_anns_info']
 
 
+def get_virtual_to_imu():
+
+    return
+
+VIRTUAL2IMU = transform_matrix(
+    [0., 0., 0.36],
+    Rotation.from_rotvec([0, 0, -np.pi * 0.5]).as_matrix()
+)
+
+
+def filter_person_size(anno_box: Dict):
+    if anno_box['category'] in ['person'] and \
+        anno_box['size'][0] > 1.5 or anno_box['size'][1] > 1.5:
+        return False
+    return True
+
+
 OD_ANNOTATION_PREFIX = {
     '3d_city_object_detection_with_fish_eye': parse_3d_object_detection_anno_info,
     '3d_highway_object_detection_with_fish_eye': parse_3d_object_detection_anno_info,
@@ -68,10 +85,6 @@ CLASS_NAMES = {
     'truck': 'truck'
 }
 
-VIRTUAL2IMU = transform_matrix(
-    [0., 0., 0.36],
-    Rotation.from_rotvec([0, 0, -np.pi * 0.5]).as_matrix()
-)
 LIDAR2IMU_FILEPATH = 'extrinsics/lidar2imu/lidar2imu.yaml'
 
 
