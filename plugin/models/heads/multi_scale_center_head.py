@@ -20,8 +20,8 @@ class MultiScaleCenterHead(BaseModule):
         tasks: List[Dict] = None,
         out_size_factor: List[int] = None,
         class_names: List[str] = None,
-        loss_cls=dict(type='GaussianFocalLoss', reduction='mean'),
-        loss_bbox=dict(type='L1Loss', reduction='none', loss_weight=0.25),
+        loss_cls: Dict = dict(type='GaussianFocalLoss', reduction='mean'),
+        loss_bbox: Dict = dict(type='L1Loss', reduction='none', loss_weight=0.25),
         **kwargs
     ):
         super(MultiScaleCenterHead, self).__init__()
@@ -30,17 +30,24 @@ class MultiScaleCenterHead(BaseModule):
         self.tasks = tasks
         self.class_names = class_names
         self.code_size = kwargs['bbox_coder']['code_size']
-        self.test_cfg = kwargs['test_cfg']
+        self.test_cfg = kwargs.get('test_cfg')
 
         self.loss_cls = build_loss(loss_cls)
         self.loss_bbox = build_loss(loss_bbox)
         self.with_velocity = 'vel' in kwargs['common_heads'].keys()
 
-        for i, _task in enumerate(tasks):
+        for i, sub_tasks in enumerate(tasks):
             kwargs['bbox_coder'].update(out_size_factor=out_size_factor[i])
-            kwargs['train_cfg'].update(out_size_factor=out_size_factor[i])
+
+            if kwargs.get('train_cfg') is not None:
+                kwargs['train_cfg'].update(out_size_factor=out_size_factor[i])
+            if kwargs.get('test_cfg') is not None:
+                kwargs['test_cfg'].update(out_size_factor=out_size_factor[i])
+
             setattr(self, f'head_{i}', CenterHead(in_channels=in_channels[i],
-                                                  tasks=_task, **deepcopy(kwargs)))
+                                                  class_names=class_names,
+                                                  tasks=sub_tasks,
+                                                  **deepcopy(kwargs)))
 
     def forward(self, lvl_feats: List[torch.Tensor]):
         """Forward pass.
@@ -185,9 +192,9 @@ class MultiScaleCenterHead(BaseModule):
                     batch_cls_labels, img_metas)
 
         for batch_ret in ret_task:
-            batch_ret.update(labels=[getattr(
+            batch_ret.update(labels=batch_ret['labels'].new_tensor([getattr(
                 self, f'head_{head_id}').class_names[task_id][label]
-                for label in batch_ret['labels']])
+                for label in batch_ret['labels']]))
 
         return ret_task # B[dict]
 
@@ -220,7 +227,6 @@ class MultiScaleCenterHead(BaseModule):
                 elif k == 'scores':
                     scores = torch.cat([ret[i][k] for ret in rets])
                 elif k == 'labels':
-                    labels = scores.new_tensor([
-                        self.class_names.index(cn) for ret in rets for cn in ret[i][k]], dtype=int)
+                    labels = torch.cat([ret[i][k].int() for ret in rets])
             ret_list.append([bboxes, scores, labels])
         return ret_list

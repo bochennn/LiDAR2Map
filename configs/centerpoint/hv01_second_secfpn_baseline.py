@@ -58,6 +58,7 @@ model = dict(
     pts_bbox_head=dict(
         type='CenterHead',
         in_channels=sum([256, 256]),
+        class_names=CLASS_NAMES,
         tasks=[ # exact same order with CLASS_NAMES
             dict(num_class=1, class_names=['car']),
             dict(num_class=3, class_names=['pickup_truck', 'truck', 'construction_vehicle']),
@@ -73,7 +74,7 @@ model = dict(
             pc_range=POINT_CLOUD_RANGE[:2],
             out_size_factor=8,
             voxel_size=VOXEL_SIZE[:2],
-            post_center_range=[-85.2, -65.2, -10.0, 125.2, 65.2, 10.0],
+            post_center_range=[-85.2, -80.0, -10.0, 125.2, 80.0, 10.0],
             max_num=500,
             score_threshold=0.1,
             code_size=7),
@@ -96,7 +97,7 @@ model = dict(
             code_weights=[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0])),
     test_cfg=dict(
         pts=dict(
-            post_center_limit_range=[-85.2, -65.2, -10.0, 125.2, 65.2, 10.0],
+            post_center_limit_range=[-85.2, -80.0, -10.0, 125.2, 80.0, 10.0],
             max_per_img=500,
             max_pool_nms=False,
             min_radius=[4, 12, 10, 0.85, 0.175],

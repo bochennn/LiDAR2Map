@@ -184,7 +184,8 @@ class ZDriveDataset(NuScenesDataset):
             # show_o3d([points], [{'box3d': np.vstack([
             #     np.hstack([gt_box_center, gt_box_dims, gt_box_yaw[:, None]]),
             #     np.hstack([pd_box_center, pd_box_dims, pd_box_yaw[:, None]])]),
-            #     'labels': np.hstack([np.zeros(len(gt_box_center)), np.ones(len(pd_box_center))]).astype(int)
+            #     'labels': np.hstack([np.zeros(len(gt_box_center)), np.ones(len(pd_box_center))]).astype(int),
+            #     'texts': np.hstack([np.asarray(self.CLASSES)[pd_labels], gt_names]),
             # }])
 
             results_dict[self.data_infos[sample_id]['timestamp']] = \

@@ -23,7 +23,6 @@ model = dict(
     pts_bbox_head=dict(
         type='MultiScaleCenterHead',
         in_channels=[512, 512, 512],
-        class_names=CLASS_NAMES,
         tasks=[
             [dict(num_class=2, class_names=['person', 'traffic_cone'])],
             [
