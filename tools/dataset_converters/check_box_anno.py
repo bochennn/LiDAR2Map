@@ -1,51 +1,76 @@
+from typing import Dict
 import pickle
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-import numpy as np
 
 CLASS_NAMES = [
-    'car',
-    'pickup_truck',
-    'truck',
-    'construction_vehicle',
-    'bus',
-    'tricycle',
-    'motorcycle',
-    'bicycle',
-    'person',
-    'traffic_cone',
-    # 'traffic_warning'
-    # 'barrier'
-    # 'recreational_vehicle'
+    'car', 'pickup_truck', 'truck', 'construction_vehicle',
+    'bus', 'tricycle', 'motorcycle', 'bicycle', 'person', 'traffic_cone',
+    # 'traffic_warning' 'barrier' 'recreational_vehicle'
 ]
 
-cls_box_size = dict()
-for info_path in list(Path('data/zdrive_all').glob('*.pkl')):
+INFO_ROOT = Path('/home/bochen/workspace/LiDAR2Map/data/zdrive')
+INFO_LIST = {
+    'CITY-3D-0529_infos_clip_1134_frames_45116.pkl': 8,
+    'HY-3D-0529_infos_clip_5933_frames_232061.pkl': 50,
+    # 'E03-CITY-20240702_infos_clip_272_frames_10737.pkl',
+    # 'E03-HY-20240702_infos_clip_1250_frames_49491.pkl',
+    'NON-E03-CITY-20240702_infos_clip_935_frames_37048.pkl': 2,
+    'NON-E03-HY-20240702_infos_clip_5583_frames_220673.pkl': 30,
+}
+
+def load_info(info_path: Path):
     with open(info_path, 'rb') as f:
         info_dict = pickle.load(f)
     print('loading', info_path.name)
-
-    # for info in info_dict['infos']:
-    #     for box, cls in zip(info['gt_boxes'], info['gt_names']):
-    #         # if not is_valid:
-    #         #     print(info_dict['metadata']['version'], info['scene_name'], info['frame_name'], info['token'])
-
-    #         if cls in cls_box_size:
-    #             cls_box_size[cls].append(box[3:6])
-    #         else:
-    #             cls_box_size[cls] = [box[3:6]]
-
-# print(cls_box_size.keys())
+    return info_dict
 
 
+def write_info(info_path: Path, info_dict: Dict):
+    with open(info_path, 'wb') as f:
+        pickle.dump(info_dict, f)
+    print('write info', info_path)
 
-fig = plt.figure('box size')
+
+def sub_set_with_interval(info_dict: Dict, interval: int):
+    new_info = dict(infos=info_dict['infos'][::interval])
+    new_info.update(metadata=dict(
+        version=info_dict['metadata']['version'], num_frames=len(new_info['infos'])
+    ))
+    print('create sub info', new_info['metadata'])
+    return new_info
+
+
+def box_size_by_class(info_dict: Dict):
+    cls_box_size = dict()
+    for info in info_dict['infos']:
+        for box, cls_name in zip(info['gt_boxes'], info['gt_names']):
+            if cls_name in cls_box_size:
+                cls_box_size[cls_name].append(box[3:6])
+            else:
+                cls_box_size[cls_name] = [box[3:6]]
+    return cls_box_size
+
+
+for info_path, sub_set_interval in INFO_LIST.items():
+    info_dict = load_info(INFO_ROOT / info_path)
+    new_info_dict = sub_set_with_interval(info_dict, interval=sub_set_interval)
+
+    info_name = info_path.split('_')[0]
+    assert info_name == info_dict['metadata']['version'] == new_info_dict['metadata']['version']
+
+    cls_box_size = box_size_by_class(new_info_dict)
+    print(f'subset after interval {sub_set_interval}')
+    print(' '.join([str(len(cls_box_size[n])) if n in cls_box_size else '0' for n in CLASS_NAMES]))
+
+    write_info(f'{info_name}_minibatch_interval_{sub_set_interval}.pkl', new_info_dict)
+
+# fig = plt.figure('box size')
 # ax = fig.add_subplot(111, projection='3d')
 
-# print(' '.join([str(len(cls_box_size[n])) if n in cls_box_size else str(0) for n in CLASS_NAMES]))
-# print(' '.join([str(np.array(cls_box_size[n]).var(axis=0)[0]) if n in cls_box_size else str(0) for n in CLASS_NAMES]))
 # print(' '.join([str(np.array(cls_box_size[n]).var(axis=0)[1]) if n in cls_box_size else str(0) for n in CLASS_NAMES]))
+# print(' '.join([str(np.array(cls_box_size[n]).var(axis=0)[0]) if n in cls_box_size else str(0) for n in CLASS_NAMES]))
 # print(' '.join([str(np.array(cls_box_size[n]).var(axis=0)[2]) if n in cls_box_size else str(0) for n in CLASS_NAMES]))
 
 # for cls in CLASS_NAMES:

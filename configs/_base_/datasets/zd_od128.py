@@ -19,15 +19,15 @@ data = dict(
         type=DATASET_TYPE, classes=CLASS_NAMES,
         data_root=INFO_ROOT,
         ann_files=[
-            f'{INFO_ROOT}/CITY-3D-0529_minibatch_val.pkl',
-            f'{INFO_ROOT}/HY-3D-0529_minibatch_val.pkl'],
+            f'{INFO_ROOT}/CITY-3D-0529_minibatch_interval_8.pkl',
+            f'{INFO_ROOT}/HY-3D-0529_minibatch_interval_50.pkl'],
         test_mode=True),
     test=dict(
         type=DATASET_TYPE, classes=CLASS_NAMES,
         data_root=INFO_ROOT,
         ann_files=[
-            f'{INFO_ROOT}/NON-E03-CITY-20240702_minibatch_test.pkl',
-            f'{INFO_ROOT}/NON-E03-HY-20240702_minibatch_test.pkl'],
+            f'{INFO_ROOT}/NON-E03-CITY-20240702_minibatch_interval_2.pkl',
+            f'{INFO_ROOT}/NON-E03-HY-20240702_minibatch_interval_30.pkl'],
         test_mode=True)
 )
 
