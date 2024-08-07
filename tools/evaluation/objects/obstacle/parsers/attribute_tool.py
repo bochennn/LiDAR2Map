@@ -87,7 +87,7 @@ class ObstacleEnum:
 
                        "Unknown": "Unknown", 'unknown': 'Unknown', 'animal': 'Unknown', 'Unknown_movable': 'Unknown',
                        'Unknown_unmovable': 'Unknown', 'unconfirm': 'Unknown',
-                       "traffic_warning": "Unknown", "other": "Unknown"
+                       "traffic_warning": "Unknown", "other": "Unknown", "recreational_vehicle": "Unknown",
                        # 'Unknown_unmovable': 'Unknown', 'unconfirm': 'Unknown', 'barrier': 'Unknown'
                        }
 

@@ -266,11 +266,16 @@ def _fill_trainval_infos(clip_root: Path, max_sweeps: int = 10, progressbar: str
 
             points = read_points_pcd(out_info['lidars']['lidar0']['filename'])
             points = convert_points(points, ego2ref @ lidar2ego)
+            # points = convert_points(points, lidar2ego)
             pts_list.append(points)
             box_list.append(convert_boxes(out_info['gt_boxes'], ego2ref))
+            # box_list.append(out_info['gt_boxes'])
             track_list.append(out_info['track_ids'])
 
-            # show_o3d([pts_list[-1]], [{'box3d': box_list[-1], 'labels': track_list[-1]}])
+            # if len(out_info['gt_names']) > 0:
+            #     show_o3d([pts_list[-1]], [{'box3d': box_list[-1],
+            #                                'labels': track_list[-1],
+            #                                'texts': out_info['gt_names']}])
     if vis:
         show_o3d([np.vstack(pts_list)],
                  [{'box3d': np.vstack(box_list),

@@ -17,7 +17,7 @@ VOXEL_GRID_SIZE = [
 ]
 
 BATCH_SIZE = 2
-BASE_LR = 3e-4
+BASE_LR = 1e-4
 EPOCHS = 36
 
 ###############################################################################
@@ -119,7 +119,8 @@ train_pipeline = [
     dict(type='LoadAnnotations3D',
          with_bbox_3d=True, with_label_3d=True),
     dict(type='PointsRangeFilter',
-         point_cloud_range=POINT_CLOUD_RANGE),
+         point_cloud_range=POINT_CLOUD_RANGE,
+         min_point_cloud_range=[-1, -1, 4, 1]),
     dict(type='ObjectRangeFilter',
          point_cloud_range=POINT_CLOUD_RANGE),
     dict(type='ObjectNameFilter', classes=CLASS_NAMES),
@@ -131,7 +132,8 @@ eval_pipeline = [
     dict(type='LoadPointsFromFile',
             load_dim=4, use_dim=4, convert_ego=True),
     dict(type='PointsRangeFilter',
-            point_cloud_range=POINT_CLOUD_RANGE),
+            point_cloud_range=POINT_CLOUD_RANGE,
+            min_point_cloud_range=[-1, -1, 4, 1]),
     dict(type='DefaultFormatBundle3D', class_names=CLASS_NAMES),
     dict(type='Collect3D', keys=['points'])
 ]

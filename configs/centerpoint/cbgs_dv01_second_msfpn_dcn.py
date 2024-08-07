@@ -1,4 +1,3 @@
-from configs._base_.datasets.zd_od128 import CLASS_NAMES
 _base_ = ['./cbgs_dv01_second_secfpn_dcn.py']
 
 model = dict(

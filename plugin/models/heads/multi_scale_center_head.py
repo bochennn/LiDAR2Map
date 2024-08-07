@@ -192,9 +192,10 @@ class MultiScaleCenterHead(BaseModule):
                     batch_cls_labels, img_metas)
 
         for batch_ret in ret_task:
-            batch_ret.update(labels=batch_ret['labels'].new_tensor([getattr(
+            batch_labels = batch_ret['labels']
+            batch_ret.update(labels=batch_labels.new_tensor([getattr(
                 self, f'head_{head_id}').class_names[task_id][label]
-                for label in batch_ret['labels']]))
+                for label in batch_labels]))
 
         return ret_task # B[dict]
 

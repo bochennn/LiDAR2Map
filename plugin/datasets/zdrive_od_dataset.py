@@ -19,7 +19,7 @@ class ZDriveDataset(NuScenesDataset):
         'person': 'Pedestrian',
         'traffic_cone': 'Cone',
         'truck': 'Truck',
-        'pickup_truck': 'Truck',
+        'pickup_truck': 'Car',
         'construction_vehicle': 'Truck',
     }
 
@@ -181,11 +181,12 @@ class ZDriveDataset(NuScenesDataset):
             #         self.data_infos[sample_id]['lidars']['lidar0']['sensor2ego_translation'],
             #         self.data_infos[sample_id]['lidars']['lidar0']['sensor2ego_rotation']
             #     ))
-            # show_o3d([points], [{'box3d': np.vstack([
+            # pts_mask = (points[:, 0] > -1) & (points[:, 0] < 4) & (points[:, 1] > -1) & (points[:, 1] < 1)
+            # show_o3d([points[~pts_mask]], [{'box3d': np.vstack([
             #     np.hstack([gt_box_center, gt_box_dims, gt_box_yaw[:, None]]),
             #     np.hstack([pd_box_center, pd_box_dims, pd_box_yaw[:, None]])]),
             #     'labels': np.hstack([np.zeros(len(gt_box_center)), np.ones(len(pd_box_center))]).astype(int),
-            #     'texts': np.hstack([np.asarray(self.CLASSES)[pd_labels], gt_names]),
+            #     'texts': np.hstack([q, np.asarray(self.CLASSES)[pd_labels]]),
             # }])
 
             results_dict[self.data_infos[sample_id]['timestamp']] = \

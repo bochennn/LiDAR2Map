@@ -233,8 +233,7 @@ class CenterHead(_CenterHead):
 
                     # be really careful for the coordinate system of
                     # your box annotation.
-                    x, y, z = task_boxes[idx][k][0], task_boxes[idx][k][
-                        1], task_boxes[idx][k][2]
+                    x, y, z = task_boxes[idx][k][0], task_boxes[idx][k][1], task_boxes[idx][k][2]
 
                     coor_x = (x - pc_range[0]) / voxel_size[0] / self.train_cfg['out_size_factor']
                     coor_y = (y - pc_range[1]) / voxel_size[1] / self.train_cfg['out_size_factor']
@@ -358,10 +357,11 @@ class CenterHead(_CenterHead):
                                              batch_cls_preds, batch_reg_preds,
                                              batch_cls_labels, img_metas))
 
-            for batch_ret in ret_task:
-                batch_ret.update(labels=batch_ret['labels'].new_tensor([
-                    self.class_names[task_id][label]
-                    for label in batch_ret['labels']]))
+        for task_id, task_rets in enumerate(rets):
+            for batch_rets in task_rets:
+                batch_labels = batch_rets['labels']
+                batch_rets.update(labels=batch_labels.new_tensor([
+                    self.class_names[task_id][label] for label in batch_labels]))
 
         # Merge branches results
         num_samples = len(rets[0])
