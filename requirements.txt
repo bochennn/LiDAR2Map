@@ -1,9 +1,7 @@
-#mmcv-full==1.6.0
-#mmdet==2.24.0
-#mmsegmentation==0.25.0
 easydict
 efficientnet_pytorch
 geopandas
+networkx
 open3d
 pyproj
 pyquaternion
@@ -13,4 +11,10 @@ simplejson
 tabulate
 tensorboardX
 torch_scatter
+werkzeug<3.0
 yapf==0.40.1
+mmcv-full==1.6.0
+mmdet==2.24.0
+mmsegmentation==0.25.0
+git+https://github.com/bochennn/pypcd.git
+git+https://github.com/open-mmlab/mmdetection3d.git@v1.0.0rc6#egg=mmdet3d
