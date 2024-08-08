@@ -38,11 +38,11 @@ class CenterPoint(MVXTwoStageDetector, _CenterPoint):
         """Extract features of points."""
         voxel_dict = self.voxelize(pts)
         feats_dict = self.pts_voxel_encoder(**voxel_dict)
-        pts_middle_feature = self.pts_middle_encoder(**feats_dict)
+        pts_middle_feature, pts_middle_layers = self.pts_middle_encoder(**feats_dict)
         pts_feature = self.pts_backbone(pts_middle_feature)
         if self.with_pts_neck:
             pts_feature = self.pts_neck(pts_feature)
-        return pts_feature
+        return pts_feature, pts_middle_layers
 
     def forward_train(
         self,
@@ -70,10 +70,11 @@ class CenterPoint(MVXTwoStageDetector, _CenterPoint):
         Returns:
             dict: Losses of different branches.
         """
-        pts_feats = self.extract_pts_feat(points)
+        pts_feats, pts_layers = self.extract_pts_feat(points)
         losses = self.forward_pts_train(pts_feats, gt_bboxes_3d, gt_labels_3d,
                                         gt_bboxes_ignore=gt_bboxes_ignore,
-                                        points=points, img_metas=img_metas)
+                                        points=points, sparse_features=pts_layers,
+                                        img_metas=img_metas)
         return losses
 
     def forward_pts_train(self,

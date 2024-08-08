@@ -1,58 +1,74 @@
-from configs.centerpoint.hv01_second_secfpn_baseline import VOXEL_SIZE, POINT_CLOUD_RANGE
+from configs.centerpoint.hv01_second_secfpn import VOXEL_SIZE, POINT_CLOUD_RANGE
 
-# _base_ = ['./cbgs_dv01_second_secfpn_dcn.py']
-_base_ = ['./dv01_second_secfpn.py']
+_base_ = ['./cbgs_dv01_second_secfpn_dcn.py']
 
 model = dict(
+    pts_middle_encoder=dict(out_indices=[1, 3]),
     pts_encoder=dict(
         type='VoxelSetAbstraction',
-        num_keypoints=2048,
+        num_keypoints=4096,
         fused_out_channel=128,
         voxel_size=VOXEL_SIZE,
         point_cloud_range=POINT_CLOUD_RANGE,
-        voxel_sa_cfgs_list=[
-            dict(
-                type='StackedSAModuleMSG',
-                in_channels=16,
-                scale_factor=1,
-                radius=(0.4, 0.8),
-                sample_nums=(16, 16),
-                mlp_channels=((16, 16), (16, 16)),
-                use_xyz=True),
-            dict(
-                type='StackedSAModuleMSG',
-                in_channels=32,
-                scale_factor=2,
-                radius=(0.8, 1.2),
-                sample_nums=(16, 32),
-                mlp_channels=((32, 32), (32, 32)),
-                use_xyz=True),
-            dict(
-                type='StackedSAModuleMSG',
-                in_channels=64,
-                scale_factor=4,
-                radius=(1.2, 2.4),
-                sample_nums=(16, 32),
-                mlp_channels=((64, 64), (64, 64)),
-                use_xyz=True),
-            dict(
-                type='StackedSAModuleMSG',
-                in_channels=64,
-                scale_factor=8,
-                radius=(2.4, 4.8),
-                sample_nums=(16, 32),
-                mlp_channels=((64, 64), (64, 64)),
-                use_xyz=True)
-        ],
+        bev_feat_channel=512,
+        bev_scale_factor=8,
+        sample_cfg=dict(
+            method='SPC',
+            num_sectors=6,
+            sample_radius_with_roi=1.6),
         rawpoints_sa_cfgs=dict(
-            type='StackedSAModuleMSG',
+            type='VectorPoolAggregationModuleMSG',
             in_channels=1,
-            radius=(0.4, 0.8),
-            sample_nums=(16, 16),
-            mlp_channels=((16, 16), (16, 16)),
-            use_xyz=True),
-        bev_feat_channel=256,
-        bev_scale_factor=8),
+            local_aggregation_type='local_interpolation',
+            num_reduced_channels=1,
+            num_channels_of_local_aggregation=32,
+            msg_post_mlps=[32],
+            radius_of_neighbor_with_roi=2.4,
+            group_cfg=[
+                dict(num_local_voxel=[2, 2, 2],
+                     max_neighbor_distance=0.2,
+                     neighbor_nsample=-1,
+                     post_mlps=[32, 32]),
+                dict(num_local_voxel=[3, 3, 3],
+                     max_neighbor_distance=0.4,
+                     neighbor_nsample=-1,
+                     post_mlps=[32, 32])]),
+        voxel_sa_cfgs_list=[
+            dict(type='VectorPoolAggregationModuleMSG',
+                 in_channels=64,
+                 downsample_factor=4,
+                 local_aggregation_type='local_interpolation',
+                 num_reduced_channels=32,
+                 num_channels_of_local_aggregation=32,
+                 msg_post_mlps=[128],
+                 radius_of_neighbor_with_roi=4.0,
+                 group_cfg=[
+                    dict(num_local_voxel=[3, 3, 3],
+                         max_neighbor_distance=1.2,
+                         neighbor_nsample=-1,
+                         post_mlps=[64, 64]),
+                    dict(num_local_voxel=[3, 3, 3],
+                         max_neighbor_distance=2.4,
+                         neighbor_nsample=-1,
+                         post_mlps=[64, 64])]),
+            dict(type='VectorPoolAggregationModuleMSG',
+                 in_channels=64,
+                 downsample_factor=8,
+                 local_aggregation_type='local_interpolation',
+                 num_reduced_channels=32,
+                 num_channels_of_local_aggregation=32,
+                 msg_post_mlps=[128],
+                 radius_of_neighbor_with_roi=6.4,
+                 group_cfg=[
+                    dict(num_local_voxel=[3, 3, 3],
+                         max_neighbor_distance=2.4,
+                         neighbor_nsample=-1,
+                         post_mlps=[64, 64]),
+                    dict(num_local_voxel=[3, 3, 3],
+                         max_neighbor_distance=4.8,
+                         neighbor_nsample=-1,
+                         post_mlps=[64, 64])])
+        ]),
     pts_roi_head=dict(
         type='PVRCNNRoiHead',
         semantic_head=dict(

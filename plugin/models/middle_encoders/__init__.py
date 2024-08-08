@@ -1,1 +1,2 @@
 from .voxel_set_abstraction import VoxelSetAbstraction
+from .sparse_encoder import SparseEncoder

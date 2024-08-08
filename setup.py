@@ -207,6 +207,25 @@ if __name__ == '__main__':
                 ],
             ),
             make_cuda_ext(
+                name='pointnet2_ext',
+                module='plugin.ops.pointnet2',
+                sources=[
+                    'src/pointnet2_api.cpp',
+                    'src/ball_query.cpp',
+                    'src/ball_query_gpu.cu',
+                    'src/group_points.cpp',
+                    'src/group_points_gpu.cu',
+                    'src/interpolate.cpp',
+                    'src/interpolate_gpu.cu',
+                    'src/sampling.cpp',
+                    'src/sampling_gpu.cu',
+                    'src/vector_pool.cpp',
+                    'src/vector_pool_gpu.cu',
+                    'src/voxel_query.cpp',
+                    'src/voxel_query_gpu.cu',
+                ],
+            ),
+            make_cuda_ext(
                 name='tree_filter_ext',
                 module='plugin.ops.tree_filter',
                 sources=[

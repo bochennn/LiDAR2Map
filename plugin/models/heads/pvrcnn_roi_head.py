@@ -1,11 +1,11 @@
 # Copyright (c) OpenMMLab. All rights reserved.
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
 
 import torch
 from mmdet3d.core import AssignResult, SamplingResult, bbox3d2roi
 from mmdet3d.models.builder import HEADS, build_head
-from mmdet.core.bbox.builder import build_assigner, build_sampler
 from mmdet3d.models.roi_heads.base_3droi_head import Base3DRoIHead
+from mmdet.core.bbox.builder import build_assigner, build_sampler
 from torch.nn import functional as F
 
 

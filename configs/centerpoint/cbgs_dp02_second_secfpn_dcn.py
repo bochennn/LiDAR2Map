@@ -1,6 +1,4 @@
-# from configs.centerpoint.hv01_second_secfpn_baseline import POINT_CLOUD_RANGE, VOXEL_SIZE
-
-_base_ = ['./dv01_second_secfpn.py']
+_base_ = ['./cbgs_dv01_second_secfpn_dcn.py']
 
 VOXEL_SIZE = [0.2, 0.2, 8]
 POINT_CLOUD_RANGE = [-82.4, -76.8, -3.0, 122.4, 76.8, 5.0]
