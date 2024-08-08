@@ -1,5 +1,5 @@
 from configs._base_.datasets.zd_od128 import CLASS_NAMES, DATASET_TYPE, INFO_ROOT
-from configs.centerpoint.hv01_second_secfpn_baseline import train_pipeline
+from configs.centerpoint.hv01_second_secfpn import train_pipeline
 
 _base_ = ['./dv01_second_secfpn.py']
 

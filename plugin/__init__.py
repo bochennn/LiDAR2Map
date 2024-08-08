@@ -1,2 +1,2 @@
 from .datasets import *
-from .ops.pointnet_modules import *
+from .ops.pointnet2 import *

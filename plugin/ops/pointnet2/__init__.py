@@ -1,0 +1,1 @@
+from .pointnet2_modules import StackSAModuleMSG
