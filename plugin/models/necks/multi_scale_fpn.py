@@ -3,6 +3,7 @@ from typing import Dict, List
 import numpy as np
 import torch
 import torch.nn as nn
+from mmcv.cnn import ConvModule
 from mmcv.cnn import build_conv_layer, build_norm_layer, build_upsample_layer
 # from mmdet3d.models.necks.second_fpn import SECONDFPN as _SECONDFPN
 from mmcv.runner import BaseModule
@@ -20,9 +21,9 @@ class MultiScaleFPN(BaseModule):
         out_indices: List[int] = [0, 1, 2],
         start_level: int = 0,
         end_level: int = -1,
-        no_norm_on_lateral: bool = False,
         conv_cfg: Dict = dict(type='Conv2d', bias=False),
-        norm_cfg: Dict = dict(type='BN', eps=1e-3, momentum=0.01),
+        norm_cfg: Dict = dict(type='BN2d', eps=1e-3, momentum=0.01),
+        act_cfg=dict(type='ReLU'),
         upsample_cfg=dict(type='deconv', bias=False),
         use_conv_for_no_stride: bool = False,
         init_cfg=None
@@ -67,28 +68,23 @@ class MultiScaleFPN(BaseModule):
                                     nn.ReLU(inplace=True))
             self.deblocks.append(deblock)
 
-        self.lateral_convs = nn.ModuleList()
         self.fpn_convs = nn.ModuleList()
-
         for i in range(self.start_level, self.backbone_end_level):
-            l_conv = build_conv_layer(
-                conv_cfg,
-                in_channels=in_channels[i] + out_channels[i],
-                out_channels=out_channels[i],
-                kernel_size=1,
-                # norm_cfg=norm_cfg if not no_norm_on_lateral else None,
-            )
-            fpn_conv = build_conv_layer(
-                conv_cfg,
-                in_channels=out_channels[i],
-                out_channels=out_channels[i],
-                kernel_size=3,
-                padding=1,
-                # norm_cfg=norm_cfg,
-            )
-
-            self.lateral_convs.append(l_conv)
-            self.fpn_convs.append(fpn_conv)
+            self.fpn_convs.append(nn.Sequential(
+                ConvModule(in_channels[i] + out_channels[i],
+                           out_channels[i],
+                           kernel_size=1,
+                           norm_cfg=norm_cfg,
+                           act_cfg=act_cfg,
+                           inplace=False),
+                ConvModule(out_channels[i],
+                           out_channels[i],
+                           kernel_size=3,
+                           padding=1,
+                           norm_cfg=norm_cfg,
+                           act_cfg=act_cfg,
+                           inplace=False),
+            ))
 
         if init_cfg is None:
             self.init_cfg = [
@@ -109,7 +105,6 @@ class MultiScaleFPN(BaseModule):
 
             if i > 0:
                 laterals[i - 1] = torch.cat([laterals[i - 1], x], dim=1)
-                laterals[i - 1] = self.lateral_convs[i - 1](laterals[i - 1])
                 laterals[i - 1] = self.fpn_convs[i - 1](laterals[i - 1])
             else:
                 laterals.insert(0, x)

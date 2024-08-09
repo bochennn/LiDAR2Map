@@ -7,9 +7,9 @@ from mmdet3d.models.middle_encoders.sparse_encoder import \
 from mmdet3d.ops.spconv import IS_SPCONV2_AVAILABLE
 
 if IS_SPCONV2_AVAILABLE:
-    from spconv.pytorch import SparseConvTensor, SparseSequential
+    from spconv.pytorch import SparseConvTensor
 else:
-    from mmcv.ops import SparseConvTensor, SparseSequential
+    from mmcv.ops import SparseConvTensor
 
 
 @MIDDLE_ENCODERS.register_module(force=True)

@@ -1,17 +1,20 @@
 from typing import Dict, List
 
 import torch
+from mmcv.runner import force_fp32
 from mmdet3d.core import circle_nms, draw_heatmap_gaussian, gaussian_radius
 from mmdet3d.core.bbox.coders.centerpoint_bbox_coders import \
     CenterPointBBoxCoder as _CenterPointBBoxCoder
-from mmdet3d.models.builder import HEADS
+from mmdet3d.models.builder import HEADS, build_loss
 from mmdet3d.models.dense_heads.centerpoint_head import \
     CenterHead as _CenterHead
+from mmdet3d.models.utils import clip_sigmoid
 from mmdet.core.bbox.builder import BBOX_CODERS
 
 
 @BBOX_CODERS.register_module(force=True)
 class CenterPointBBoxCoder(_CenterPointBBoxCoder):
+
     def decode(self,
                heat: torch.Tensor,
                rot_sine: torch.Tensor,
@@ -41,7 +44,7 @@ class CenterPointBBoxCoder(_CenterPointBBoxCoder):
         Returns:
             list[dict]: Decoded boxes.
         """
-        batch, cat, _, _ = heat.size()
+        batch, _, _, _ = heat.size()
 
         scores, inds, clses, ys, xs = self._topk(heat, K=self.max_num)
 
@@ -74,12 +77,10 @@ class CenterPointBBoxCoder(_CenterPointBBoxCoder):
         clses = clses.view(batch, self.max_num).float()
         scores = scores.view(batch, self.max_num)
 
-        xs = xs.view(
-            batch, self.max_num,
-            1) * self.out_size_factor * self.voxel_size[0] + self.pc_range[0]
-        ys = ys.view(
-            batch, self.max_num,
-            1) * self.out_size_factor * self.voxel_size[1] + self.pc_range[1]
+        xs = xs.view(batch, self.max_num, 1) * \
+            self.out_size_factor * self.voxel_size[0] + self.pc_range[0]
+        ys = ys.view(batch, self.max_num, 1) * \
+            self.out_size_factor * self.voxel_size[1] + self.pc_range[1]
 
         if vel is None:  # KITTI FORMAT
             final_box_preds = torch.cat([xs, ys, hei, dim, rot], dim=2)
@@ -138,6 +139,8 @@ class CenterHead(_CenterHead):
         for task in tasks:
             task.update(class_names=[class_names.index(c) for c in task['class_names']])
         super(CenterHead, self).__init__(tasks=tasks, **kwargs)
+
+        # self.iou_loss = build_loss(dict(type='IoU3DLoss'))
 
     def get_targets_single(
         self,
@@ -285,6 +288,166 @@ class CenterHead(_CenterHead):
             inds.append(ind)
         return heatmaps, anno_boxes, inds, masks
 
+    def loss_single(
+        self,
+        task_preds: Dict[str, torch.Tensor],
+        heatmap: torch.Tensor,
+        target_box: torch.Tensor,
+        ind: torch.Tensor,
+        mask: torch.Tensor,
+    ):
+        if isinstance(task_preds, list):
+            task_preds = task_preds[0]
+
+        task_preds['heatmap'] = clip_sigmoid(task_preds['heatmap'])
+        num_pos = heatmap.eq(1).float().sum().item()
+
+        loss_heatmap = self.loss_cls(task_preds['heatmap'], heatmap,
+                                     avg_factor=max(num_pos, 1))
+
+        # reconstruct the anno_box from multiple reg heads
+        if self.with_velocity:
+            task_preds['anno_box'] = torch.cat(
+                (task_preds['reg'], task_preds['height'],
+                 task_preds['dim'], task_preds['rot'],
+                 task_preds['vel']), dim=1)
+        else:
+            task_preds['anno_box'] = torch.cat(
+                (task_preds['reg'], task_preds['height'],
+                 task_preds['dim'], task_preds['rot']), dim=1)
+        # Regression loss for dimension, offset, height, rotation
+        num = mask.float().sum()
+        # pred = task_preds['anno_box'].permute(0, 2, 3, 1).contiguous()
+        # pred = pred.view(pred.size(0), -1, pred.size(3))
+        pred = self.bbox_coder._transpose_and_gather_feat(task_preds['anno_box'], ind)
+        isnotnan = (~torch.isnan(target_box)).float()
+        code_mask = mask.unsqueeze(2).expand_as(target_box).float() * isnotnan
+
+        code_weights = self.train_cfg.get('code_weights', None)
+        bbox_weights = code_mask * code_mask.new_tensor(code_weights)
+        loss_bbox = self.loss_bbox(
+            pred, target_box, bbox_weights, avg_factor=(num + 1e-4))
+
+        if 'iou' in task_preds:
+            # with torch
+            target_box_preds = self.bbox_coder.decode(
+                heatmap.eq(1).float(),
+                task_preds['rot'][:, 0:1], task_preds['rot'][:, 1:2],
+                task_preds['height'], task_preds['dim'],
+                task_preds.get('vel'), task_preds['reg']
+            )  # (B, H, W, 7 or 9)
+
+            pred_iou = self.bbox_coder._transpose_and_gather_feat(task_preds['iou'], ind)
+            iou_loss = self.iou_loss(pred_iou, target_box_preds, target_box, mask)
+        else:
+            iou_loss = None
+
+        return loss_heatmap, loss_bbox, iou_loss
+
+    @force_fp32(apply_to=('preds_dicts'))
+    def loss(self, gt_bboxes_3d, gt_labels_3d, preds_dicts, **kwargs):
+        """Loss function for CenterHead.
+
+        Args:
+            gt_bboxes_3d (list[:obj:`LiDARInstance3DBoxes`]): Ground
+                truth gt boxes.
+            gt_labels_3d (list[torch.Tensor]): Labels of boxes.
+            preds_dicts (dict): Output of forward function.
+
+        Returns:
+            dict[str:torch.Tensor]: Loss of heatmap and bbox of each task.
+        """
+        heatmaps, anno_boxes, inds, masks = self.get_targets(
+            gt_bboxes_3d, gt_labels_3d)
+        loss_dict = dict()
+        for task_id, preds_with_targets in enumerate(
+                zip(preds_dicts, heatmaps, anno_boxes, inds, masks)):
+            loss_heatmap, loss_bbox, loss_iou = self.loss_single(*preds_with_targets)
+            loss_dict[f'task{task_id}.loss_heatmap'] = loss_heatmap
+            loss_dict[f'task{task_id}.loss_bbox'] = loss_bbox
+            if loss_iou is not None:
+                loss_dict[f'task{task_id}.loss_iou'] = loss_iou
+
+        return loss_dict
+
+    def get_bboxes_single(
+        self,
+        task_preds: Dict[str, torch.Tensor],
+        num_class_with_bg: int,
+        img_metas: List,
+        task_id: int
+    ) -> List[Dict]:
+        batch_size = task_preds['heatmap'].shape[0]
+        batch_heatmap = task_preds['heatmap'].sigmoid()
+
+        batch_reg = task_preds['reg']
+        batch_hei = task_preds['height']
+
+        batch_dim = torch.exp(task_preds['dim']) if self.norm_bbox else task_preds['dim']
+
+        batch_rots = task_preds['rot'][:, 0].unsqueeze(1)
+        batch_rotc = task_preds['rot'][:, 1].unsqueeze(1)
+        batch_vel = task_preds.get('vel')
+
+        temp = self.bbox_coder.decode(batch_heatmap, batch_rots, batch_rotc,
+                                      batch_hei, batch_dim, batch_vel,
+                                      reg=batch_reg, task_id=task_id)
+        assert self.test_cfg['nms_type'] in ['circle', 'rotate']
+        batch_reg_preds = [box['bboxes'] for box in temp]
+        batch_cls_preds = [box['scores'] for box in temp]
+        batch_cls_labels = [box['labels'] for box in temp]
+
+        if self.test_cfg['nms_type'] == 'circle':
+            ret_task = []
+            for i in range(batch_size):
+                boxes3d = temp[i]['bboxes']
+                scores = temp[i]['scores']
+                labels = temp[i]['labels']
+                centers = boxes3d[:, [0, 1]]
+                boxes = torch.cat([centers, scores.view(-1, 1)], dim=1)
+                keep = torch.tensor(
+                    circle_nms(
+                        boxes.detach().cpu().numpy(),
+                        self.test_cfg['min_radius'][task_id],
+                        post_max_size=self.test_cfg['post_max_size']),
+                    dtype=torch.long,
+                    device=boxes.device)
+
+                boxes3d = boxes3d[keep]
+                scores = scores[keep]
+                labels = labels[keep]
+                ret = dict(bboxes=boxes3d, scores=scores, labels=labels)
+                ret_task.append(ret)
+        else:
+            ret_task = self.get_task_detections(
+                    num_class_with_bg, batch_cls_preds, batch_reg_preds,
+                    batch_cls_labels, img_metas)
+
+        for batch_ret in ret_task:
+            batch_labels = batch_ret['labels']
+            batch_ret.update(
+                labels=batch_labels.new_tensor([self.class_names[task_id][label]
+                for label in batch_labels]))
+
+        return ret_task # B[dict]
+
+    def _merge_task_results(self, task_results: List, img_metas: List):
+        """ task_results: [tasks, B, dict] -> [B, dict] """
+        batch_size, ret_list = len(task_results[0]), []
+        for i in range(batch_size):
+            for k in task_results[0][i].keys():
+                if k == 'bboxes':
+                    bboxes = torch.cat([ret[i][k] for ret in task_results])
+                    # bboxes[:, 2] = bboxes[:, 2] - bboxes[:, 5] * 0.5
+                    bboxes = img_metas[i]['box_type_3d'](
+                        bboxes, self.bbox_coder.code_size, origin=(0.5, 0.5, 0.5))
+                elif k == 'scores':
+                    scores = torch.cat([ret[i][k] for ret in task_results])
+                elif k == 'labels':
+                    labels = torch.cat([ret[i][k].int() for ret in task_results])
+            ret_list.append([bboxes, scores, labels])
+        return ret_list
+
     @torch.no_grad()
     def get_bboxes(self, preds_dicts, img_metas, img=None, rescale=False):
         """Generate bboxes from bbox head predictions.
@@ -296,92 +459,12 @@ class CenterHead(_CenterHead):
         Returns:
             list[dict]: Decoded bbox, scores and labels after nms.
         """
-        rets = []
+        task_rets = []
         for task_id, preds_dict in enumerate(preds_dicts):
-            num_class_with_bg = self.num_classes[task_id]
-            batch_size = preds_dict[0]['heatmap'].shape[0]
-            batch_heatmap = preds_dict[0]['heatmap'].sigmoid()
-
-            batch_reg = preds_dict[0]['reg']
-            batch_hei = preds_dict[0]['height']
-
-            if self.norm_bbox:
-                batch_dim = torch.exp(preds_dict[0]['dim'])
-            else:
-                batch_dim = preds_dict[0]['dim']
-
-            batch_rots = preds_dict[0]['rot'][:, 0].unsqueeze(1)
-            batch_rotc = preds_dict[0]['rot'][:, 1].unsqueeze(1)
-
-            if 'vel' in preds_dict[0]:
-                batch_vel = preds_dict[0]['vel']
-            else:
-                batch_vel = None
-            temp = self.bbox_coder.decode(
-                batch_heatmap,
-                batch_rots,
-                batch_rotc,
-                batch_hei,
-                batch_dim,
-                batch_vel,
-                reg=batch_reg,
-                task_id=task_id)
-            assert self.test_cfg['nms_type'] in ['circle', 'rotate']
-            batch_reg_preds = [box['bboxes'] for box in temp]
-            batch_cls_preds = [box['scores'] for box in temp]
-            batch_cls_labels = [box['labels'] for box in temp]
-            if self.test_cfg['nms_type'] == 'circle':
-                ret_task = []
-                for i in range(batch_size):
-                    boxes3d = temp[i]['bboxes']
-                    scores = temp[i]['scores']
-                    labels = temp[i]['labels']
-                    centers = boxes3d[:, [0, 1]]
-                    boxes = torch.cat([centers, scores.view(-1, 1)], dim=1)
-                    keep = torch.tensor(
-                        circle_nms(
-                            boxes.detach().cpu().numpy(),
-                            self.test_cfg['min_radius'][task_id],
-                            post_max_size=self.test_cfg['post_max_size']),
-                        dtype=torch.long,
-                        device=boxes.device)
-
-                    boxes3d = boxes3d[keep]
-                    scores = scores[keep]
-                    labels = labels[keep]
-                    ret = dict(bboxes=boxes3d, scores=scores, labels=labels)
-                    ret_task.append(ret)
-                rets.append(ret_task)
-            else:
-                rets.append(
-                    self.get_task_detections(num_class_with_bg,
-                                             batch_cls_preds, batch_reg_preds,
-                                             batch_cls_labels, img_metas))
-
-        for task_id, task_rets in enumerate(rets):
-            for batch_rets in task_rets:
-                batch_labels = batch_rets['labels']
-                batch_rets.update(labels=batch_labels.new_tensor([
-                    self.class_names[task_id][label] for label in batch_labels]))
+            task_rets.append(self.get_bboxes_single(
+                preds_dict[0],
+                self.num_classes[task_id],
+                img_metas, task_id))
 
         # Merge branches results
-        num_samples = len(rets[0])
-
-        ret_list = []
-        for i in range(num_samples):
-            for k in rets[0][i].keys():
-                if k == 'bboxes':
-                    bboxes = torch.cat([ret[i][k] for ret in rets])
-                    # bboxes[:, 2] = bboxes[:, 2] - bboxes[:, 5] * 0.5
-                    bboxes = img_metas[i]['box_type_3d'](
-                        bboxes, self.bbox_coder.code_size, origin=(0.5, 0.5, 0.5))
-                elif k == 'scores':
-                    scores = torch.cat([ret[i][k] for ret in rets])
-                elif k == 'labels':
-                    # flag = 0
-                    # for j, num_class in enumerate(self.num_classes):
-                    #     rets[j][i][k] += flag
-                    #     flag += num_class
-                    labels = torch.cat([ret[i][k].int() for ret in rets])
-            ret_list.append([bboxes, scores, labels])
-        return ret_list
+        return self._merge_task_results(task_rets, img_metas)

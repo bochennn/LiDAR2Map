@@ -26,8 +26,8 @@ def ts_match(ts_lists, verbose=False, max_allowed_gap=0.08):
     ts_lists = [np.array(sorted(ts_list), dtype=np.float64) for ts_list in ts_lists]
     freq_seq = [cal_freq(ts_list) for ts_list in ts_lists]
 
-    start_ts = max(ts_list[0] for ts_list in ts_lists)
-    end_ts = min(ts_list[-1] for ts_list in ts_lists)
+    start_ts = max(ts_list[0] for ts_list in ts_lists if len(ts_list) > 0)
+    end_ts = min(ts_list[-1] for ts_list in ts_lists if len(ts_list) > 0)
 
     base_data_index = np.argmin(freq_seq)
     base_data = np.array([ts for ts in ts_lists[base_data_index] if start_ts <= ts <= end_ts])
