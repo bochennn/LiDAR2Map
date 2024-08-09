@@ -1,7 +1,7 @@
 from typing import Dict, List, Optional, Tuple
 
 import torch
-from mmdet3d.core.bbox import LiDARInstance3DBoxes
+from mmdet3d.core.bbox import LiDARInstance3DBoxes, bbox3d2result
 from mmdet3d.models.builder import DETECTORS, build_head
 from mmdet3d.models.detectors.centerpoint import CenterPoint as _CenterPoint
 
@@ -82,11 +82,10 @@ class CenterPoint(MVXTwoStageDetector, _CenterPoint):
                                          preds_dicts=preds_dicts)
         if self.with_pts_roi_head:
             rpn_results_list = self.pts_bbox_head.get_bboxes(preds_dicts, img_metas)
-            losses.update(self.pts_roi_head.forward_train(rpn_results_list,
-                                                          gt_bboxes_3d, gt_labels_3d,
-                                                          points=points,
-                                                          pts_feats=pts_feats,
-                                                          **extra_feats))
+            losses.update(self.pts_roi_head.loss(rpn_results_list,
+                                                 gt_bboxes_3d, gt_labels_3d,
+                                                 points=points, pts_feats=pts_feats,
+                                                 **extra_feats))
         return losses
 
     def forward_test(
@@ -101,10 +100,16 @@ class CenterPoint(MVXTwoStageDetector, _CenterPoint):
 
         bbox_list = [dict() for _ in range(len(img_metas))]
 
-        bbox_pts = self.simple_test_pts(
-            pts_feats, img_metas, rescale=rescale)
-        for result_dict, pts_bbox in zip(bbox_list, bbox_pts):
-            result_dict['pts_bbox'] = pts_bbox
+        preds_dicts = self.pts_bbox_head(pts_feats)
+        results_list = self.pts_bbox_head.get_bboxes(
+            preds_dicts, img_metas, rescale=rescale)
+
         if self.with_pts_roi_head:
-            pass
+            results_list = self.pts_roi_head.predict(results_list, points,
+                                                     pts_feats, img_metas,
+                                                     **extra_feats)
+
+        for result_dict, (bboxes, scores, labels) in zip(bbox_list, results_list):
+            result_dict['pts_bbox'] = bbox3d2result(bboxes, scores, labels)
+
         return bbox_list

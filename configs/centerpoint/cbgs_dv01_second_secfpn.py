@@ -10,19 +10,8 @@ data = dict(
         dataset=dict(
             type=DATASET_TYPE, classes=CLASS_NAMES,
             data_root=INFO_ROOT,
-            # ann_files=data['train']['ann_files'],
-            ann_files=[
-                f'{INFO_ROOT}/E03-CITY-20240702_infos_clip_2_frames_78.pkl',
-                f'{INFO_ROOT}/E03-HY-20240702_infos_clip_1_frames_39.pkl'],
+            ann_files=data['train']['ann_files'],
             pipeline=train_pipeline),
-    ),
-    val=dict(
-        ann_files=[
-                f'{INFO_ROOT}/CITY-3D-0529_infos_clip_1_frames_40.pkl',
-                f'{INFO_ROOT}/HY-3D-0529_infos_clip_1_frames_40.pkl']),
-    test=dict(
-        ann_files=[
-            f'{INFO_ROOT}/NON-E03-CITY-20240702_infos_clip_1_frames_40.pkl',
-            f'{INFO_ROOT}/NON-E03-HY-20240702_infos_clip_1_frames_40.pkl'])
+    )
 )
 runner = dict(max_epochs=18)

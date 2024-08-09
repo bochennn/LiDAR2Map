@@ -12,12 +12,12 @@ CLASS_NAMES = [
 
 INFO_ROOT = Path('/home/bochen/workspace/LiDAR2Map/data/zdrive')
 INFO_LIST = {
-    'CITY-3D-0529_infos_clip_1134_frames_45116.pkl': 8,
-    'HY-3D-0529_infos_clip_5933_frames_232061.pkl': 50,
+    # 'CITY-3D-0529_infos_clip_1134_frames_45116.pkl': 8,
+    'HY-3D-0529_infos_clip_5933_frames_232061.pkl': 15,
     # 'E03-CITY-20240702_infos_clip_272_frames_10737.pkl',
     # 'E03-HY-20240702_infos_clip_1250_frames_49491.pkl',
-    'NON-E03-CITY-20240702_infos_clip_935_frames_37048.pkl': 2,
-    'NON-E03-HY-20240702_infos_clip_5583_frames_220673.pkl': 30,
+    # 'NON-E03-CITY-20240702_infos_clip_935_frames_37048.pkl': 2,
+    # 'NON-E03-HY-20240702_infos_clip_5583_frames_220673.pkl': 30,
 }
 
 def load_info(info_path: Path):

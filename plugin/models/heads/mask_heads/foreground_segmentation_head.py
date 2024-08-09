@@ -1,13 +1,12 @@
 # Copyright (c) OpenMMLab. All rights reserved.
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import torch
 from mmcv.cnn.bricks import build_norm_layer
 from mmcv.runner import BaseModule
-# from mmdet3d.registry import MODELS
+from mmdet3d.core.bbox import LiDARInstance3DBoxes
 from mmdet3d.models.builder import HEADS, build_loss
 from mmdet.core import multi_apply
-# from mmengine.structures import InstanceData
 from torch import nn as nn
 
 
@@ -115,7 +114,8 @@ class ForegroundSegmentationHead(BaseModule):
         return point_cls_labels_single,
 
     def get_targets(self, points_bxyz: torch.Tensor,
-                    batch_gt_instances_3d: Dict) -> dict:
+                    gt_bboxes_3d: List[LiDARInstance3DBoxes],
+                    gt_labels_3d: List[torch.Tensor]) -> dict:
         """Generate segmentation targets.
 
         Args:
@@ -129,15 +129,10 @@ class ForegroundSegmentationHead(BaseModule):
             dict: Prediction targets
                 - seg_targets (torch.Tensor): Segmentation targets.
         """
-        batch_size = len(batch_gt_instances_3d)
         points_xyz_list = []
-        gt_bboxes_3d = []
-        gt_labels_3d = []
-        for idx in range(batch_size):
+        for idx, _ in enumerate(gt_bboxes_3d):
             coords_idx = points_bxyz[:, 0] == idx
-            points_xyz_list.append(points_bxyz[coords_idx][..., 1:])
-            gt_bboxes_3d.append(batch_gt_instances_3d[idx]['bboxes_3d'])
-            gt_labels_3d.append(batch_gt_instances_3d[idx]['labels_3d'])
+            points_xyz_list.append(points_bxyz[coords_idx][:, 1:])
         seg_targets, = multi_apply(self._get_targets_single, points_xyz_list,
                                    gt_bboxes_3d, gt_labels_3d)
         seg_targets = torch.cat(seg_targets, dim=0)

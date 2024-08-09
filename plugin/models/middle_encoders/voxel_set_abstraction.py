@@ -1,5 +1,5 @@
 # Copyright (c) OpenMMLab. All rights reserved.
-from typing import Dict, List, Optional
+from typing import Dict, List, Tuple, Optional
 
 import torch
 import torch.nn as nn
@@ -151,10 +151,6 @@ class VoxelSetAbstraction(BaseModule):
         xyz_batch_cnt = coors.new_zeros(coors[:, 0].max() + 1).int()
         for bs_idx, _ in enumerate(xyz_batch_cnt):
             xyz_batch_cnt[bs_idx] = (coors[:, 0] == bs_idx).sum()
-        
-        if coors[:xyz_batch_cnt[0], 0].sum() != 0:
-            print(uuuuuuu)
-
         return voxel_centers, xyz_batch_cnt
 
     def sectorized_proposal_centric_sampling(self, points: torch.Tensor, roi_boxes: torch.Tensor):
@@ -229,7 +225,9 @@ class VoxelSetAbstraction(BaseModule):
         bev_feature: List[torch.Tensor] = None,
         voxel_feature: List[SparseConvTensor] = None,
         voxel_coords = None,
-        rpn_results_list: List[LiDARInstance3DBoxes] = None,
+        rpn_results_list: List[Tuple[LiDARInstance3DBoxes,
+                                     torch.Tensor,
+                                     torch.Tensor]] = None,
     ) -> Dict:
         """Extract point-wise features from multi-input.
 
@@ -263,8 +261,8 @@ class VoxelSetAbstraction(BaseModule):
                 rpn_rois.append(roi_boxes)
 
         if not self.voxel_center_as_source:
-            voxels_coors = None
-        key_xyz, key_xyz_cnt = self.sample_key_points(points, voxels_coors, rpn_rois)    # [N1 + N2 + ..., D]
+            voxel_coords = None
+        key_xyz, key_xyz_cnt = self.sample_key_points(points, voxel_coords, rpn_rois)    # [N1 + N2 + ..., D]
 
         point_features_list = []
         if self.bev_cfg is not None:
@@ -288,7 +286,6 @@ class VoxelSetAbstraction(BaseModule):
 
         if self.voxel_sa_layers is not None:
             for k, voxel_sa_layer in enumerate(self.voxel_sa_layers):
-                # indices not consecutive order in spconv
                 cur_coords = voxel_feature[k].indices
                 cur_features = voxel_feature[k].features.contiguous()
 
@@ -296,10 +293,11 @@ class VoxelSetAbstraction(BaseModule):
                     coors=cur_coords,
                     scale_factor=self.voxel_sa_configs_list[k].downsample_factor)
 
-                print(cur_coords)
-                print(cur_features)
-                print(xyz)
-                print(xyz_cnt)
+                # indices not consecutive order in spconv
+                if cur_coords[:xyz_cnt[0], 0].sum() != 0:
+                    xyz = torch.cat([xyz[cur_coords[:, 0] == i] for i, _ in enumerate(xyz_cnt)], dim=0)
+                    cur_features = torch.cat([cur_features[cur_coords[:, 0] == i] for i, _ in enumerate(xyz_cnt)], dim=0)
+
                 _, pooled_features = voxel_sa_layer(
                     xyz=xyz.contiguous(),
                     xyz_batch_cnt=xyz_cnt,

@@ -224,8 +224,8 @@ class MultiScaleCenterHead(BaseModule):
             for k in rets[0][0].keys():
                 if k == 'bboxes':
                     bboxes = torch.cat([ret[i][k] for ret in rets])
-                    bboxes[:, 2] = bboxes[:, 2] - bboxes[:, 5] * 0.5
-                    bboxes = img_metas[i]['box_type_3d'](bboxes, self.code_size)
+                    # bboxes[:, 2] = bboxes[:, 2] - bboxes[:, 5] * 0.5
+                    bboxes = img_metas[i]['box_type_3d'](bboxes, self.code_size, origin=(0.5, 0.5, 0.5))
                 elif k == 'scores':
                     scores = torch.cat([ret[i][k] for ret in rets])
                 elif k == 'labels':

@@ -452,13 +452,11 @@ class PVRCNNBBoxHead(BaseModule):
             selected_label_preds = label_preds[selected]
             selected_scores = cur_cls_preds[selected]
 
-            # results = InstanceData()
-            # results.bboxes_3d = input_metas[batch_id]['box_type_3d'](
-            #     selected_bboxes, self.bbox_coder.code_size)
-            # results.scores_3d = selected_scores
-            # results.labels_3d = selected_label_preds
+            # results 
+            bboxes_3d = input_metas[batch_id]['box_type_3d'](
+                 selected_bboxes, self.bbox_coder.code_size)
 
-            # result_list.append()
+            result_list.append([bboxes_3d, selected_scores, selected_label_preds])
         return result_list
 
     def class_agnostic_nms(self, scores: torch.Tensor,

@@ -119,7 +119,8 @@ model = dict(
                 type='mmdet.CrossEntropyLoss',
                 use_sigmoid=True,
                 reduction='sum',
-                loss_weight=1.0))),
+                loss_weight=1.0))
+    ),
     train_cfg=dict(
         rcnn=dict(
             assigner=dict(
@@ -139,7 +140,14 @@ model = dict(
                 add_gt_as_proposals=False,
                 return_iou=True),
             cls_pos_thr=0.75,
-            cls_neg_thr=0.25
+            cls_neg_thr=0.25)
+    ),
+    test_cfg=dict(
+        rcnn=dict(
+            use_rotate_nms=True,
+            use_raw_score=True,
+            nms_thr=0.1,
+            score_thr=0.1
         )
     )
 )
