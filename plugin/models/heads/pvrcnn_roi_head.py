@@ -2,8 +2,10 @@
 from typing import Dict, List, Optional
 
 import torch
+from mmcv.ops import SparseConvTensor
 from mmdet3d.core import AssignResult, SamplingResult, bbox3d2roi
-from mmdet3d.models.builder import HEADS, build_head
+from mmdet3d.core.bbox import LiDARInstance3DBoxes
+from mmdet3d.models.builder import HEADS, build_head, build_middle_encoder
 from mmdet3d.models.roi_heads.base_3droi_head import Base3DRoIHead
 from mmdet.core.bbox.builder import build_assigner, build_sampler
 from torch.nn import functional as F
@@ -29,29 +31,29 @@ class PVRCNNRoiHead(Base3DRoIHead):
     """
 
     def __init__(self,
-                #  num_classes: int = 3,
-                 semantic_head: Optional[dict] = None,
-                 bbox_roi_extractor: Optional[dict] = None,
-                 bbox_head: Optional[dict] = None,
-                 train_cfg: Optional[dict] = None,
-                 test_cfg: Optional[dict] = None,
-                 init_cfg: Optional[dict] = None):
+                 pts_encoder: Optional[Dict] = None,
+                 semantic_head: Optional[Dict] = None,
+                 bbox_roi_extractor: Optional[Dict] = None,
+                 bbox_head: Optional[Dict] = None,
+                 train_cfg: Optional[Dict] = None,
+                 test_cfg: Optional[Dict] = None,
+                 init_cfg: Optional[Dict] = None):
         super(PVRCNNRoiHead, self).__init__(
             bbox_head=bbox_head,
-            mask_roi_extractor=bbox_roi_extractor,
             train_cfg=train_cfg,
             test_cfg=test_cfg,
             init_cfg=init_cfg)
-        # self.num_classes = num_classes
+
+        self.pts_encoder = build_middle_encoder(pts_encoder)
         self.semantic_head = build_head(semantic_head)
+        self.bbox_roi_extractor = build_head(bbox_roi_extractor)
 
         self.init_assigner_sampler()
 
     @property
     def with_semantic(self):
         """bool: whether the head has semantic branch"""
-        return hasattr(self,
-                       'semantic_head') and self.semantic_head is not None
+        return hasattr(self, 'semantic_head') and self.semantic_head is not None
 
     def loss(self, feats_dict: dict, rpn_results_list,
              gt_bboxes_3d, gt_labels_3d, **kwargs) -> dict:
@@ -75,20 +77,14 @@ class PVRCNNRoiHead(Base3DRoIHead):
         """
         losses = dict()
         batch_gt_instances_3d = []
-        # batch_gt_instances_ignore = []
-        # for data_sample in batch_data_samples:
         for bboxed_3d, labels_3d in zip(gt_bboxes_3d, gt_labels_3d):
             batch_gt_instances_3d.append(dict(bboxes_3d=bboxed_3d, labels_3d=labels_3d))
-            # batch_gt_instances_3d.append(data_sample.gt_instances_3d)
-            # if 'ignored_instances' in data_sample:
-            #     batch_gt_instances_ignore.append(data_sample.ignored_instances)
-            # else:
-            #     batch_gt_instances_ignore.append(None)
-        # if self.with_semantic:
-        #     semantic_results = self._semantic_forward_train(
-        #         feats_dict['keypoint_features'], feats_dict['keypoints'],
-        #         batch_gt_instances_3d)
-        #     losses['loss_semantic'] = semantic_results['loss_semantic']
+
+        if self.with_semantic:
+            semantic_results = self._semantic_forward_train(
+                feats_dict['keypoint_features'], feats_dict['keypoints'],
+                batch_gt_instances_3d)
+            losses['loss_semantic'] = semantic_results['loss_semantic']
 
         sample_results = self._assign_and_sample(rpn_results_list,
                                                  batch_gt_instances_3d)
@@ -135,9 +131,8 @@ class PVRCNNRoiHead(Base3DRoIHead):
         ]
 
         semantic_results = self.semantic_head(feats_dict['keypoint_features'])
-        point_features = feats_dict[
-            'fusion_keypoint_features'] * semantic_results[
-                'seg_preds'].sigmoid().max(
+        point_features = feats_dict['fusion_keypoint_features'] * \
+                semantic_results['seg_preds'].sigmoid().max(
                     dim=-1, keepdim=True).values
         rois = bbox3d2roi(
             [res['bboxes_3d'].tensor for res in rpn_results_list])
@@ -158,7 +153,6 @@ class PVRCNNRoiHead(Base3DRoIHead):
 
     def init_mask_head(self, mask_roi_extractor: Dict, mask_head: Dict):
         """Initialize maek head."""
-        # self.bbox_roi_extractor = MODELS.build(bbox_roi_extractor)
         pass
 
     def init_assigner_sampler(self):
@@ -175,22 +169,19 @@ class PVRCNNRoiHead(Base3DRoIHead):
             self.bbox_sampler = build_sampler(self.train_cfg.sampler)
 
     def forward_train(self,
-                      x,
-                      img_metas,
-                      proposal_list,
-                      gt_bboxes,
-                      gt_labels,
-                      gt_bboxes_ignore=None,
+                      rpn_results_list: List[LiDARInstance3DBoxes],
+                      gt_bboxes_3d: List[LiDARInstance3DBoxes],
+                      gt_labels_3d: List[torch.Tensor],
+                      points: List[torch.Tensor] = None,
+                      pts_feats: List[torch.Tensor] = None,
+                      voxel_feats: List[SparseConvTensor] = None,
+                      voxel_coors: List = None,
                       **kwargs):
-        
-        batch_gt_instances_3d = []
-        for gt_box, gt_label in zip(gt_bboxes, gt_labels):
-            batch_gt_instances_3d.append(dict(
-                bboxes_3d=gt_box, labels_3d=gt_label))
-        sample_results = self._assign_and_sample(proposal_list,
-                                                 batch_gt_instances_3d)
-
-        return
+        """Forward function during training."""
+        feats_dict = self.pts_encoder(points, pts_feats, voxel_feats,
+                                      voxel_coors, rpn_results_list)
+        return self.loss(feats_dict, rpn_results_list,
+                         gt_bboxes_3d, gt_labels_3d)
 
     def _bbox_forward_train(self, seg_preds: torch.Tensor,
                             keypoint_features: torch.Tensor,
@@ -214,11 +205,10 @@ class PVRCNNRoiHead(Base3DRoIHead):
             dim=-1, keepdim=True).values
         bbox_results = self._bbox_forward(keypoint_features, keypoints, rois)
 
-        bbox_targets = self.bbox_head.get_targets(sampling_results,
-                                                  self.train_cfg)
+        bbox_targets = self.bbox_head.get_targets(sampling_results, self.train_cfg)
         loss_bbox = self.bbox_head.loss(bbox_results['bbox_scores'],
-                                        bbox_results['bbox_reg'], rois,
-                                        *bbox_targets)
+                                        bbox_results['bbox_reg'],
+                                        rois, *bbox_targets)
 
         bbox_results.update(loss_bbox=loss_bbox)
         return bbox_results
@@ -240,8 +230,7 @@ class PVRCNNRoiHead(Base3DRoIHead):
                 features of roi_extractor.
         """
         pooled_keypoint_features = self.bbox_roi_extractor(
-            keypoint_features, keypoints[..., 1:], keypoints[..., 0].int(),
-            rois)
+            keypoint_features, keypoints, rois)
         bbox_score, bbox_reg = self.bbox_head(pooled_keypoint_features)
 
         bbox_results = dict(bbox_scores=bbox_score, bbox_reg=bbox_reg)

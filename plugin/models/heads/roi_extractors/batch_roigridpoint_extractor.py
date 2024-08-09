@@ -28,8 +28,7 @@ class Batch3DRoIGridExtractor(BaseModule):
         self.roi_grid_pool_layer = build_sa_module(roi_layer)
         self.grid_size = grid_size
 
-    def forward(self, feats: torch.Tensor, coordinate: torch.Tensor,
-                batch_inds: torch.Tensor, rois: torch.Tensor) -> torch.Tensor:
+    def forward(self, features: torch.Tensor, keypoints: torch.Tensor, rois: torch.Tensor) -> torch.Tensor:
         """Forward roi extractor to extract grid points feature.
 
         Args:
@@ -41,12 +40,11 @@ class Batch3DRoIGridExtractor(BaseModule):
         Returns:
             torch.Tensor: Grid points features.
         """
-        batch_size = int(batch_inds.max()) + 1
-
-        xyz = coordinate
-        xyz_batch_cnt = xyz.new_zeros(batch_size).int()
+        xyz = keypoints[:, 1:4].contiguous()
+        batch_size = int(keypoints[-1, 0].item() + 1)
+        xyz_batch_cnt = keypoints.new_zeros(batch_size).int()
         for k in range(batch_size):
-            xyz_batch_cnt[k] = (batch_inds == k).sum()
+            xyz_batch_cnt[k] = (keypoints[:, 0] == k).sum()
 
         rois_batch_inds = rois[:, 0].int()
         # (N1+N2+..., 6x6x6, 3)
@@ -55,14 +53,14 @@ class Batch3DRoIGridExtractor(BaseModule):
         new_xyz = roi_grid.view(-1, 3)
         new_xyz_batch_cnt = new_xyz.new_zeros(batch_size).int()
         for k in range(batch_size):
-            new_xyz_batch_cnt[k] = ((rois_batch_inds == k).sum() *
-                                    roi_grid.size(1))
-        pooled_points, pooled_features = self.roi_grid_pool_layer(
-            xyz=xyz.contiguous(),
+            new_xyz_batch_cnt[k] = (rois_batch_inds == k).sum() * roi_grid.shape[1]
+
+        _, pooled_features = self.roi_grid_pool_layer(
+            xyz=xyz,
             xyz_batch_cnt=xyz_batch_cnt,
-            new_xyz=new_xyz.contiguous(),
+            new_xyz=new_xyz,
             new_xyz_batch_cnt=new_xyz_batch_cnt,
-            features=feats.contiguous())  # (M1 + M2 ..., C)
+            features=features)  # (M1 + M2 ..., C)
 
         pooled_features = pooled_features.view(-1, self.grid_size,
                                                self.grid_size, self.grid_size,

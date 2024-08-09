@@ -213,7 +213,7 @@ class VectorPoolLocalInterpolateModule(nn.Module):
 
 class VectorPoolAggregationModule(nn.Module):
     def __init__(self,
-                 input_channels,
+                 input_channels: int = 1,
                  num_local_voxel=(3, 3, 3),
                  local_aggregation_type: str = 'local_interpolation',
                  num_reduced_channels: int = 32,
@@ -396,7 +396,7 @@ class VectorPoolAggregationModule(nn.Module):
 @SA_MODULES.register_module()
 class VectorPoolAggregationModuleMSG(BaseModule):
     def __init__(self,
-                 in_channels: int,
+                 in_channels: int = 1,
                  local_aggregation_type: str = 'local_interpolation',
                  num_reduced_channels = 2,
                  num_channels_of_local_aggregation = 32,

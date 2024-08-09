@@ -199,6 +199,7 @@ class MultiScaleCenterHead(BaseModule):
 
         return ret_task # B[dict]
 
+    @torch.no_grad()
     def get_bboxes(self, preds_dicts: List, img_metas: List, **kwargs: Dict) -> List:
         """Generate bboxes from bbox head predictions.
 

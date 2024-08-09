@@ -1,11 +1,11 @@
 # Copyright (c) OpenMMLab. All rights reserved.
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
-# import mmengine
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from mmcv import Config
-from mmcv.cnn import ConvModule
+from mmcv.ops import SparseConvTensor
 from mmcv.runner import BaseModule
 from mmdet3d.core.bbox import LiDARInstance3DBoxes
 from mmdet3d.models.builder import MIDDLE_ENCODERS
@@ -95,14 +95,10 @@ class VoxelSetAbstraction(BaseModule):
             self.voxel_sa_layers = None
 
         self.point_feature_fusion_layer = nn.Sequential(
-            ConvModule(
-                gathered_channel,
-                fused_out_channel,
-                kernel_size=(1, 1),
-                stride=(1, 1),
-                conv_cfg=dict(type='Conv2d'),
-                norm_cfg=norm_cfg,
-                bias=bias))
+            nn.Linear(gathered_channel, fused_out_channel, bias=False),
+            nn.BatchNorm1d(fused_out_channel),
+            nn.ReLU(),
+        )
 
     def interpolate_from_bev_features(self, keypoints: torch.Tensor, keypoints_cnt: torch.Tensor,
                                       bev_features: torch.Tensor) -> torch.Tensor:
@@ -129,7 +125,6 @@ class VoxelSetAbstraction(BaseModule):
         for k, cur_bev_features in enumerate(bev_features):
             cur_x_idxs = x_idxs[cnt_start:cnt_start + keypoints_cnt[k], ...]
             cur_y_idxs = y_idxs[cnt_start:cnt_start + keypoints_cnt[k], ...]
-            # cur_bev_features = bev_features[k].permute(1, 2, 0)  # (H, W, C)
             point_bev_features = bilinear_interpolate_torch(cur_bev_features.permute(1, 2, 0), cur_x_idxs, cur_y_idxs)
             point_bev_features_list.append(point_bev_features)
             cnt_start += keypoints_cnt[k]
@@ -153,9 +148,12 @@ class VoxelSetAbstraction(BaseModule):
         pc_range = torch.tensor(self.point_cloud_range[:3], device=voxel_centers.device).float()
         voxel_centers = (voxel_centers + 0.5) * voxel_size + pc_range
 
-        xyz_batch_cnt = coors.new_zeros(coors[-1, 0].item() + 1).int()
+        xyz_batch_cnt = coors.new_zeros(coors[:, 0].max() + 1).int()
         for bs_idx, _ in enumerate(xyz_batch_cnt):
             xyz_batch_cnt[bs_idx] = (coors[:, 0] == bs_idx).sum()
+        
+        if coors[:xyz_batch_cnt[0], 0].sum() != 0:
+            print(uuuuuuu)
 
         return voxel_centers, xyz_batch_cnt
 
@@ -227,11 +225,11 @@ class VoxelSetAbstraction(BaseModule):
 
     def forward(
         self,
-        bev_features,
-        rpn_results_list: List[Tuple[LiDARInstance3DBoxes, torch.Tensor, torch.Tensor]] = None,
         points: List[torch.Tensor] = None,
-        voxels_coors = None,
-        sparse_features: List = None,
+        bev_feature: List[torch.Tensor] = None,
+        voxel_feature: List[SparseConvTensor] = None,
+        voxel_coords = None,
+        rpn_results_list: List[LiDARInstance3DBoxes] = None,
     ) -> Dict:
         """Extract point-wise features from multi-input.
 
@@ -254,8 +252,8 @@ class VoxelSetAbstraction(BaseModule):
                 - fusion_keypoint_features (torch.Tensor): Fusion
                     keypoint_features by point_feature_fusion_layer.
         """
-        if isinstance(bev_features, List):
-            bev_features = bev_features[0]
+        if isinstance(bev_feature, List):
+            bev_feature = bev_feature[0]
 
         rpn_rois = []
         if rpn_results_list is not None:
@@ -270,7 +268,7 @@ class VoxelSetAbstraction(BaseModule):
 
         point_features_list = []
         if self.bev_cfg is not None:
-            point_bev_features = self.interpolate_from_bev_features(key_xyz, key_xyz_cnt, bev_features)
+            point_bev_features = self.interpolate_from_bev_features(key_xyz, key_xyz_cnt, bev_feature)
             point_features_list.append(point_bev_features)
 
         if self.rawpoints_sa_layer is not None:
@@ -290,13 +288,18 @@ class VoxelSetAbstraction(BaseModule):
 
         if self.voxel_sa_layers is not None:
             for k, voxel_sa_layer in enumerate(self.voxel_sa_layers):
-                cur_coords = sparse_features[k].indices
-                cur_features = sparse_features[k].features.contiguous()
+                # indices not consecutive order in spconv
+                cur_coords = voxel_feature[k].indices
+                cur_features = voxel_feature[k].features.contiguous()
 
                 xyz, xyz_cnt = self.get_voxel_centers(
                     coors=cur_coords,
                     scale_factor=self.voxel_sa_configs_list[k].downsample_factor)
 
+                print(cur_coords)
+                print(cur_features)
+                print(xyz)
+                print(xyz_cnt)
                 _, pooled_features = voxel_sa_layer(
                     xyz=xyz.contiguous(),
                     xyz_batch_cnt=xyz_cnt,
@@ -307,16 +310,15 @@ class VoxelSetAbstraction(BaseModule):
                 point_features_list.append(pooled_features)
 
         point_features = torch.cat(point_features_list, dim=-1)
+        fusion_point_features = self.point_feature_fusion_layer(point_features) # B, L, C
 
-        fusion_point_features = self.point_feature_fusion_layer(point_features).squeeze(-1) # B, L, C
-        # batch_idxs = torch.arange(
-        #     batch_size * num_keypoints, device=keypoints.device
-        # ) // num_keypoints  # batch indexes of each key points
-        # batch_keypoints_xyz = torch.cat(
-        #     (batch_idxs.to(key_xyz.dtype).unsqueeze(dim=-1), key_xyz), dim=-1)
+        keypoints_xyz, cnt_start = F.pad(key_xyz, pad=(1, 0), value=1), 0
+        for i, xyz_cnt in enumerate(key_xyz_cnt):
+            keypoints_xyz[cnt_start:cnt_start + xyz_cnt, 0] = i
+            cnt_start += xyz_cnt
 
-        # return dict(
-        #     keypoint_features=point_features.squeeze(dim=-1),
-        #     fusion_keypoint_features=fusion_point_features.squeeze(dim=-1),
-        #     keypoints=batch_keypoints_xyz)
-        return fusion_point_features
+        return dict(
+            keypoints=keypoints_xyz,
+            keypoint_features=point_features,
+            fusion_keypoint_features=fusion_point_features,
+        )

@@ -285,6 +285,7 @@ class CenterHead(_CenterHead):
             inds.append(ind)
         return heatmaps, anno_boxes, inds, masks
 
+    @torch.no_grad()
     def get_bboxes(self, preds_dicts, img_metas, img=None, rescale=False):
         """Generate bboxes from bbox head predictions.
 

@@ -9,11 +9,8 @@ from mmdet3d.core.bbox import LiDARInstance3DBoxes, xywhr2xyxyr
 from mmdet3d.core.bbox.box_np_ops import rotation_3d_in_axis
 from mmdet3d.core.post_processing import nms_bev, nms_normal_bev
 from mmdet3d.models.builder import HEADS, build_loss
-# from mmdet3d.utils import InstanceList
-# from mmdet.models.task_modules.samplers import SamplingResult
 from mmdet.core import multi_apply
 from mmdet.core.bbox.builder import build_bbox_coder
-# from mmengine.structures import InstanceData
 from torch import nn as nn
 
 

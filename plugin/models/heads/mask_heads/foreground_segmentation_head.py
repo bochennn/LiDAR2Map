@@ -10,8 +10,6 @@ from mmdet.core import multi_apply
 # from mmengine.structures import InstanceData
 from torch import nn as nn
 
-# from mmdet3d.utils import InstanceList
-
 
 @HEADS.register_module()
 class ForegroundSegmentationHead(BaseModule):
@@ -101,13 +99,11 @@ class ForegroundSegmentationHead(BaseModule):
         Returns:
             torch.Tensor: Points class labels.
         """
-        point_cls_labels_single = point_xyz.new_zeros(
-            point_xyz.shape[0]).long()
+        point_cls_labels_single = point_xyz.new_zeros(point_xyz.shape[0]).long()
         enlarged_gt_boxes = gt_bboxes_3d.enlarged_box(self.extra_width)
 
         box_idxs_of_pts = gt_bboxes_3d.points_in_boxes_part(point_xyz).long()
-        extend_box_idxs_of_pts = enlarged_gt_boxes.points_in_boxes_part(
-            point_xyz).long()
+        extend_box_idxs_of_pts = enlarged_gt_boxes.points_in_boxes_part(point_xyz).long()
         box_fg_flag = box_idxs_of_pts >= 0
         fg_flag = box_fg_flag.clone()
         ignore_flag = fg_flag ^ (extend_box_idxs_of_pts >= 0)
@@ -119,7 +115,7 @@ class ForegroundSegmentationHead(BaseModule):
         return point_cls_labels_single,
 
     def get_targets(self, points_bxyz: torch.Tensor,
-                    batch_gt_instances_3d) -> dict:
+                    batch_gt_instances_3d: Dict) -> dict:
         """Generate segmentation targets.
 
         Args:
@@ -140,8 +136,8 @@ class ForegroundSegmentationHead(BaseModule):
         for idx in range(batch_size):
             coords_idx = points_bxyz[:, 0] == idx
             points_xyz_list.append(points_bxyz[coords_idx][..., 1:])
-            gt_bboxes_3d.append(batch_gt_instances_3d[idx].bboxes_3d)
-            gt_labels_3d.append(batch_gt_instances_3d[idx].labels_3d)
+            gt_bboxes_3d.append(batch_gt_instances_3d[idx]['bboxes_3d'])
+            gt_labels_3d.append(batch_gt_instances_3d[idx]['labels_3d'])
         seg_targets, = multi_apply(self._get_targets_single, points_xyz_list,
                                    gt_bboxes_3d, gt_labels_3d)
         seg_targets = torch.cat(seg_targets, dim=0)
