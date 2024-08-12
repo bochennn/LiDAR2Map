@@ -85,7 +85,7 @@ class MultiScaleCenterHead(BaseModule):
                     zip(preds_dict, heatmaps, anno_boxes, inds, masks)):
                 loss_heatmap, loss_bbox, loss_iou = getattr(self, f'head_{head_id}').\
                     loss_single(*preds_with_targets)
-                loss_dict[f'head{head_id}_task{task_id}.loss_heatmap'] = loss_heatmap,
+                loss_dict[f'head{head_id}_task{task_id}.loss_heatmap'] = loss_heatmap
                 loss_dict[f'head{head_id}_task{task_id}.loss_bbox'] = loss_bbox
                 if loss_iou is not None:
                     loss_dict[f'head{head_id}_task{task_id}.loss_iou'] = loss_iou

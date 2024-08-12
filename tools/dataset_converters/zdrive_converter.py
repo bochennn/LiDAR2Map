@@ -104,6 +104,9 @@ def create_zdrive_infos(root_path: Path, out_dir: Path, batch_name: str, workers
     for info_list in info_list_by_clip:
         info_list_by_frame.extend(info_list)
 
+    if len(len(info_list_by_frame)) == 0:
+        return
+
     info_prefix = batch_name.replace('-undownloaded', '')
     metadata = dict(
         version=info_prefix,

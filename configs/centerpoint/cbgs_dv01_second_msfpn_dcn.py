@@ -10,15 +10,14 @@ model = dict(
         norm_cfg=dict(type='BN', eps=1e-3, momentum=0.01),
         conv_cfg=dict(type='Conv2d', bias=False)),
     pts_neck=dict(
+        _delete_=True,
         type='MultiScaleFPN',
         in_channels=[256, 256, 512],
         out_channels=[512, 512, 512],
-        upsample_strides=[2, 2, 2],
+        upsample_scales=[2, 2, 2],
         out_indices=[0, 1, 2],
-        conv_cfg=dict(type='Conv2d', bias=False),
         norm_cfg=dict(type='BN', eps=1e-3, momentum=0.01),
-        upsample_cfg=dict(type='deconv', bias=False),
-        use_conv_for_no_stride=True),
+        upsample_cfg=dict(type='bilinear', align_corners=False)),
     pts_bbox_head=dict(
         type='MultiScaleCenterHead',
         in_channels=[512, 512, 512],

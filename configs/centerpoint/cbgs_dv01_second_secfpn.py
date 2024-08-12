@@ -12,6 +12,6 @@ data = dict(
             data_root=INFO_ROOT,
             ann_files=data['train']['ann_files'],
             pipeline=train_pipeline),
-    )
+    ),
 )
 runner = dict(max_epochs=18)

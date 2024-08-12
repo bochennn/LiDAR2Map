@@ -3,7 +3,7 @@ from functools import partial
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from mmdet3d.ops import SparseBasicBlock
+from mmdet3d.ops.sparse_block import SparseBasicBlock, replace_feature
 from mmdet3d.ops.spconv import IS_SPCONV2_AVAILABLE
 
 if IS_SPCONV2_AVAILABLE:
