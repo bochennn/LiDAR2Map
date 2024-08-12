@@ -146,7 +146,7 @@ class ZDriveDataset(NuScenesDataset):
         gt_names_3d = info['gt_names'][mask]
         gt_labels_3d = []
         for cat in gt_names_3d:
-            _cat = self.NameMapping[cat]
+            _cat = self.NameMapping[cat] if cat in self.NameMapping else 'others'
             if _cat in self.CLASSES:
                 gt_labels_3d.append(self.CLASSES.index(_cat))
             else:

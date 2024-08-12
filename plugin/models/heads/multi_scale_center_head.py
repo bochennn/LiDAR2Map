@@ -3,7 +3,7 @@ from typing import Dict, List
 
 import torch
 from mmcv.runner import BaseModule, force_fp32
-from mmdet3d.models.builder import HEADS, build_loss
+from mmdet3d.models.builder import HEADS
 
 from .center_head import CenterHead
 
@@ -16,22 +16,12 @@ class MultiScaleCenterHead(BaseModule):
         in_channels: List[int] = None,
         tasks: List[Dict] = None,
         out_size_factor: List[int] = None,
-        class_names: List[str] = None,
-        loss_cls: Dict = dict(type='GaussianFocalLoss', reduction='mean'),
-        loss_bbox: Dict = dict(type='L1Loss', reduction='none', loss_weight=0.25),
         **kwargs
     ):
         super(MultiScaleCenterHead, self).__init__()
         assert len(in_channels) == len(tasks) == len(out_size_factor)
 
         self.tasks = tasks
-        self.class_names = class_names
-        self.code_size = kwargs['bbox_coder']['code_size']
-        self.test_cfg = kwargs.get('test_cfg')
-
-        self.loss_cls = build_loss(loss_cls)
-        self.loss_bbox = build_loss(loss_bbox)
-        self.with_velocity = 'vel' in kwargs['common_heads'].keys()
 
         for i, sub_tasks in enumerate(tasks):
             kwargs['bbox_coder'].update(out_size_factor=out_size_factor[i])
@@ -42,7 +32,6 @@ class MultiScaleCenterHead(BaseModule):
                 kwargs['test_cfg'].update(out_size_factor=out_size_factor[i])
 
             setattr(self, f'head_{i}', CenterHead(in_channels=in_channels[i],
-                                                  class_names=class_names,
                                                   tasks=sub_tasks,
                                                   **deepcopy(kwargs)))
 
