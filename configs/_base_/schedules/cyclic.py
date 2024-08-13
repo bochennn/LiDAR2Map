@@ -9,7 +9,7 @@ lr_config = dict(
 )
 momentum_config = dict(
     policy='cyclic',
-    target_ratio=(1.05, 0.99),
+    target_ratio=(0.85 / 0.95, 1.),
     cyclic_times=1,
     step_ratio_up=0.4,
 )

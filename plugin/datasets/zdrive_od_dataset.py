@@ -145,12 +145,10 @@ class ZDriveDataset(NuScenesDataset):
         gt_bboxes_3d = info['gt_boxes'][mask]
         gt_names_3d = info['gt_names'][mask]
         gt_labels_3d = []
-        for cat in gt_names_3d:
-            _cat = self.NameMapping[cat] if cat in self.NameMapping else 'others'
-            if _cat in self.CLASSES:
-                gt_labels_3d.append(self.CLASSES.index(_cat))
-            else:
-                gt_labels_3d.append(-1)
+        for i, cat in enumerate(gt_names_3d):
+            _cat = self.NameMapping[cat] if cat in self.NameMapping else 'other'
+            gt_names_3d[i] = _cat
+            gt_labels_3d.append(self.CLASSES.index(_cat) if _cat in self.CLASSES else -1)
         gt_labels_3d = np.array(gt_labels_3d)
 
         if self.with_velocity:
@@ -246,7 +244,7 @@ class ZDriveDataset(NuScenesDataset):
             #     np.hstack([gt_box_center, gt_box_dims, gt_box_yaw[:, None]]),
             #     np.hstack([pd_box_center, pd_box_dims, pd_box_yaw[:, None]])]),
             #     'labels': np.hstack([np.zeros(len(gt_box_center)), np.ones(len(pd_box_center))]).astype(int),
-            #     'texts': np.hstack([q, np.asarray(self.CLASSES)[pd_labels]]),
+            #     'texts': np.hstack([gt_names, np.asarray(self.CLASSES)[pd_labels]]),
             # }])
 
             results_dict[self.data_infos[sample_id]['timestamp']] = \
