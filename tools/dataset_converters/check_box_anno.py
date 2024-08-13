@@ -14,10 +14,10 @@ INFO_ROOT = Path('/home/bochen/workspace/LiDAR2Map/data/zdrive')
 INFO_LIST = {
     # 'CITY-3D-0529_infos_clip_1134_frames_45116.pkl': 8,
     'HY-3D-0529_infos_clip_5933_frames_232061.pkl': 15,
-    # 'E03-CITY-20240702_infos_clip_272_frames_10737.pkl',
-    # 'E03-HY-20240702_infos_clip_1250_frames_49491.pkl',
-    # 'NON-E03-CITY-20240702_infos_clip_935_frames_37048.pkl': 2,
-    # 'NON-E03-HY-20240702_infos_clip_5583_frames_220673.pkl': 30,
+    'E03-CITY-20240702_infos_clip_272_frames_10737.pkl': 2,
+    'E03-HY-20240702_infos_clip_1250_frames_49491.pkl': 30,
+    'NON-E03-CITY-20240702_infos_clip_935_frames_37048.pkl': 2,
+    'NON-E03-HY-20240702_infos_clip_5583_frames_220673.pkl': 30,
 }
 
 def load_info(info_path: Path):
@@ -34,9 +34,13 @@ def write_info(info_path: Path, info_dict: Dict):
 
 
 def sub_set_with_interval(info_dict: Dict, interval: int):
-    new_info = dict(infos=info_dict['infos'][::interval])
+    clip_names = {inf['scene_name'] for inf in info_dict['infos']}
+    sub_clip_names = list(clip_names)[::interval]
+
+    new_info = dict(infos=[inf for inf in info_dict['infos'] if inf['scene_name'] in sub_clip_names])
     new_info.update(metadata=dict(
-        version=info_dict['metadata']['version'], num_frames=len(new_info['infos'])
+        version=info_dict['metadata']['version'],
+        num_clips=len(sub_clip_names), num_frames=len(new_info['infos'])
     ))
     print('create sub info', new_info['metadata'])
     return new_info
@@ -64,7 +68,10 @@ for info_path, sub_set_interval in INFO_LIST.items():
     print(f'subset after interval {sub_set_interval}')
     print(' '.join([str(len(cls_box_size[n])) if n in cls_box_size else '0' for n in CLASS_NAMES]))
 
-    write_info(f'{info_name}_minibatch_interval_{sub_set_interval}.pkl', new_info_dict)
+    write_info('{}_interval_{}_clip_{}_frames_{}.pkl'.\
+        format(info_name, sub_set_interval,
+               new_info_dict['metadata']['num_clips'],
+               new_info_dict['metadata']['num_frames']), new_info_dict)
 
 # fig = plt.figure('box size')
 # ax = fig.add_subplot(111, projection='3d')

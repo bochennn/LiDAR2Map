@@ -13,24 +13,23 @@ data = dict(
         type=DATASET_TYPE, classes=CLASS_NAMES,
         data_root=INFO_ROOT,
         ann_files=[
-            # f'{INFO_ROOT}/CITY-3D-0529_infos_clip_1134_frames_45116.pkl',
-            # f'{INFO_ROOT}/HY-3D-0529_minibatch_interval_15.pkl']),
-            f'{INFO_ROOT}/E03-CITY-20240702_infos_clip_272_frames_10737.pkl',
-            f'{INFO_ROOT}/E03-HY-20240702_infos_clip_1250_frames_49491.pkl']),
+            f'{INFO_ROOT}/CITY-3D-0529_infos_clip_1134_frames_45116.pkl',
+            f'{INFO_ROOT}/HY-3D-0529_interval_15_clip_396_frames_15541.pkl']),
+            # f'{INFO_ROOT}/E03-CITY-20240702_infos_clip_272_frames_10737.pkl',
+            # f'{INFO_ROOT}/E03-HY-20240702_infos_clip_1250_frames_49491.pkl']),
     val=dict(
         type=DATASET_TYPE, classes=CLASS_NAMES,
         data_root=INFO_ROOT,
         ann_files=[
-            # f'{INFO_ROOT}/E03-CITY-20240702_infos_clip_272_frames_10737.pkl'],
-            f'{INFO_ROOT}/CITY-3D-0529_minibatch_interval_8.pkl',
-            f'{INFO_ROOT}/HY-3D-0529_minibatch_interval_50.pkl'],
+            f'{INFO_ROOT}/E03-CITY-20240702_interval_2_clip_136_frames_5372.pkl',
+            f'{INFO_ROOT}/NON-E03-HY-20240702_interval_30_clip_187_frames_7409.pkl'],
         test_mode=True),
     test=dict(
         type=DATASET_TYPE, classes=CLASS_NAMES,
         data_root=INFO_ROOT,
         ann_files=[
-            f'{INFO_ROOT}/NON-E03-CITY-20240702_minibatch_interval_2.pkl',
-            f'{INFO_ROOT}/NON-E03-HY-20240702_minibatch_interval_30.pkl'],
+            f'{INFO_ROOT}/NON-E03-CITY-20240702_interval_2_clip_468_frames_18561.pkl',
+            f'{INFO_ROOT}/NON-E03-HY-20240702_interval_30_clip_187_frames_7409.pkl'],
         test_mode=True)
 )
 

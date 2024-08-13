@@ -14,4 +14,4 @@ data = dict(
             pipeline=train_pipeline),
     ),
 )
-runner = dict(max_epochs=18)
+runner = dict(max_epochs=9)
