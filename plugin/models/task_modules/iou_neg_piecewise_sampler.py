@@ -100,6 +100,6 @@ class IoUNegPiecewiseSampler(_IoUNegPiecewiseSampler):
             # PartA2 needs iou score to regression.
             sampling_result.iou = assign_result.max_overlaps[torch.cat(
                 [pos_inds, neg_inds])]
-            sampling_result.iou.detach_()
+            sampling_result.iou.detach_().nan_to_num_()
 
         return sampling_result

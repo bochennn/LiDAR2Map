@@ -5,7 +5,7 @@ from mmcv.runner import force_fp32
 from mmdet3d.core import circle_nms, draw_heatmap_gaussian, gaussian_radius
 from mmdet3d.core.bbox.coders.centerpoint_bbox_coders import \
     CenterPointBBoxCoder as _CenterPointBBoxCoder
-from mmdet3d.models.builder import HEADS, build_loss
+from mmdet3d.models.builder import HEADS
 from mmdet3d.models.dense_heads.centerpoint_head import \
     CenterHead as _CenterHead
 from mmdet3d.models.utils import clip_sigmoid

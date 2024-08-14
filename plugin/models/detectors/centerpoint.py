@@ -22,8 +22,9 @@ class CenterPoint(MVXTwoStageDetector, _CenterPoint):
             train_cfg=train_cfg, test_cfg=test_cfg, **kwargs)
 
         if pts_roi_head is not None:
-            pts_roi_head.update(train_cfg=train_cfg.get('rcnn'),
-                                test_cfg=test_cfg.get('rcnn'))
+            if train_cfg is not None:
+                pts_roi_head.update(train_cfg=train_cfg.get('rcnn'))
+            pts_roi_head.update(test_cfg=test_cfg.get('rcnn'))
             self.pts_roi_head = build_head(pts_roi_head)
 
     @property

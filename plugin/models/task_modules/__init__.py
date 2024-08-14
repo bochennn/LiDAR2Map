@@ -1,1 +1,2 @@
+from .iou_neg_piecewise_sampler import IoUNegPiecewiseSampler
 from .max_3d_iou_assigner import Max3DIoUAssigner
