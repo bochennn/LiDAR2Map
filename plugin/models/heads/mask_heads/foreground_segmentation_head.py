@@ -81,7 +81,7 @@ class ForegroundSegmentationHead(BaseModule):
             dict: Segment predictions.
         """
         seg_preds = self.seg_cls_layer(feats)
-        return dict(seg_preds=seg_preds)
+        return dict(seg_preds=seg_preds.nan_to_num())
 
     def _get_targets_single(self, point_xyz: torch.Tensor,
                             gt_bboxes_3d,

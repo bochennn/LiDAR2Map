@@ -155,8 +155,7 @@ class PVRCNNBBoxHead(BaseModule):
         """
         # (B * N, 6, 6, 6, C)
         rcnn_batch_size = feats.shape[0]
-        feats = feats.permute(0, 4, 1, 2,
-                              3).contiguous().view(rcnn_batch_size, -1, 1, 1)
+        feats = feats.permute(0, 4, 1, 2, 3).contiguous().view(rcnn_batch_size, -1, 1, 1)
         # (BxN, C*6*6*6)
         shared_feats = self.shared_fc_layer(feats)
         cls_score = self.cls_layer(shared_feats).transpose(
@@ -326,14 +325,12 @@ class PVRCNNBBoxHead(BaseModule):
             pos_gt_bboxes_ct[..., 0:3] -= roi_center
             pos_gt_bboxes_ct[..., 6] -= roi_ry
             pos_gt_bboxes_ct[..., 0:3] = rotation_3d_in_axis(
-                pos_gt_bboxes_ct[..., 0:3].unsqueeze(1), -roi_ry,
-                axis=2).squeeze(1)
+                pos_gt_bboxes_ct[..., 0:3].unsqueeze(1), -roi_ry, axis=2).squeeze(1)
 
             # flip orientation if rois have opposite orientation
             ry_label = pos_gt_bboxes_ct[..., 6] % (2 * np.pi)  # 0 ~ 2pi
             opposite_flag = (ry_label > np.pi * 0.5) & (ry_label < np.pi * 1.5)
-            ry_label[opposite_flag] = (ry_label[opposite_flag] + np.pi) % (
-                2 * np.pi)  # (0 ~ pi/2, 3pi/2 ~ 2pi)
+            ry_label[opposite_flag] = (ry_label[opposite_flag] + np.pi) % (2 * np.pi)  # (0 ~ pi/2, 3pi/2 ~ 2pi)
             flag = ry_label > np.pi
             ry_label[flag] = ry_label[flag] - np.pi * 2  # (-pi/2, pi/2)
             ry_label = torch.clamp(ry_label, min=-np.pi / 2, max=np.pi / 2)
@@ -342,8 +339,7 @@ class PVRCNNBBoxHead(BaseModule):
             rois_anchor = pos_bboxes.clone().detach()
             rois_anchor[:, 0:3] = 0
             rois_anchor[:, 6] = 0
-            bbox_targets = self.bbox_coder.encode(rois_anchor,
-                                                  pos_gt_bboxes_ct)
+            bbox_targets = self.bbox_coder.encode(rois_anchor, pos_gt_bboxes_ct)
         else:
             # no fg bbox
             bbox_targets = pos_gt_bboxes.new_empty((0, 7))

@@ -317,6 +317,7 @@ class PVRCNNRoiHead(Base3DRoIHead):
                                                        cur_boxes.tensor,
                                                        cur_gt_bboxes,
                                                        cur_gt_labels)
+            sampling_result.iou = sampling_result.iou.nan_to_num()
             sampling_results.append(sampling_result)
         return sampling_results
 
