@@ -1,2 +1,2 @@
-from .pillar_encoder import PointPillarEncoder, DynamicPillarFeatureNet
-from .voxel_encoder import HardSimpleVFE, DynamicSimpleVFE
+from .pillar_encoder import DynamicPillarFeatureNet, PointPillarEncoder
+from .voxel_encoder import DynamicSimpleVFE, DynamicVFE, HardSimpleVFE

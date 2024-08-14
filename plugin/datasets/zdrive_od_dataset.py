@@ -205,9 +205,8 @@ class ZDriveDataset(NuScenesDataset):
                 )
                 pd_box_list.append(pd_box)
 
-            anno_info = self.get_ann_info(sample_id)
-            gt_box3d = anno_info['gt_bboxes_3d']
-            gt_names = anno_info['gt_names']
+            gt_box3d = det['gt_bboxes_3d']
+            gt_labels = det['gt_labels_3d']
 
             gt_box_center = gt_box3d.gravity_center.numpy()
             gt_box_dims = gt_box3d.dims.numpy()
@@ -217,7 +216,7 @@ class ZDriveDataset(NuScenesDataset):
                 gt_box = dict(
                     measure_timestamp=0, track_id=0, obj_id=0,
                     obj_type=0, obj_sub_type=0, obj_score=1,
-                    category=gt_names[j],
+                    category=self.CLASSES[gt_labels[j]],
                     psr=dict(
                         position=dict(
                             x=gt_box_center[j][0],
@@ -240,11 +239,14 @@ class ZDriveDataset(NuScenesDataset):
             #         self.data_infos[sample_id]['lidars']['lidar0']['sensor2ego_rotation']
             #     ))
             # pts_mask = (points[:, 0] > -1) & (points[:, 0] < 4) & (points[:, 1] > -1) & (points[:, 1] < 1)
-            # show_o3d([points[~pts_mask]], [{'box3d': np.vstack([
-            #     np.hstack([gt_box_center, gt_box_dims, gt_box_yaw[:, None]]),
-            #     np.hstack([pd_box_center, pd_box_dims, pd_box_yaw[:, None]])]),
-            #     'labels': np.hstack([np.zeros(len(gt_box_center)), np.ones(len(pd_box_center))]).astype(int),
-            #     'texts': np.hstack([gt_names, np.asarray(self.CLASSES)[pd_labels]]),
+            # show_o3d([points[~pts_mask]], [{
+            #     'box3d': np.vstack([
+            #         np.hstack([gt_box_center, gt_box_dims, gt_box_yaw[:, None]]),
+            #         np.hstack([pd_box_center, pd_box_dims, pd_box_yaw[:, None]])]),
+            #     'labels': np.hstack([np.zeros(len(gt_box_center)),
+            #                          np.ones(len(pd_box_center))]).astype(int),
+            #     'texts': np.hstack([np.asarray(self.CLASSES)[gt_labels],
+            #                         np.asarray(self.CLASSES)[pd_labels]]),
             # }])
 
             results_dict[self.data_infos[sample_id]['timestamp']] = \

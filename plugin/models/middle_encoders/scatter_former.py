@@ -1,16 +1,9 @@
 import torch.nn as nn
-# from mmdet3d.ops.sparse_block import SparseBasicBlock, make_sparse_convmodule
-# from mmdet3d.ops.spconv import IS_SPCONV2_AVAILABLE
 from mmdet3d.models.builder import MIDDLE_ENCODERS
-from .sparse_encoder import SparseEncoder
+from spconv.pytorch import SparseConv3d, SparseConvTensor, SparseSequential
 
 from ..layers.scatter_former_layer import AttnPillarPool, ScatterFormerLayer3x
-
-# if IS_SPCONV2_AVAILABLE:
-from spconv.pytorch import SparseSequential, SparseConv3d, SparseConvTensor
-# else:
-#     from mmcv.ops.sparse_conv import SparseSequential, SparseConv3d, SparseConvTensor
-
+from .sparse_encoder import SparseEncoder
 
 
 @MIDDLE_ENCODERS.register_module()
@@ -33,7 +26,7 @@ class ScatterFormer(SparseEncoder):
                                      win_size=attn_window_size,
                                      indice_key='scatter_former'),
                 nn.BatchNorm1d(128, eps=1e-3, momentum=0.01),
-                SparseConv3d(128, 128, 3, stride=2, padding=1,
+                SparseConv3d(128, 128, 3, stride=(1, 2, 2), padding=1,
                              bias=False, indice_key='spconv_down')))
 
         self.post_former_layer.add_module(
@@ -43,7 +36,7 @@ class ScatterFormer(SparseEncoder):
                                      win_size=attn_window_size,
                                      indice_key='scatter_former'),
                 nn.BatchNorm1d(128, eps=1e-3, momentum=0.01),
-                AttnPillarPool(128, self.sparse_shape[0] // 16)))
+                AttnPillarPool(128, self.sparse_shape[0] // 8)))
 
     def forward(self, voxel_features, coors, batch_size):
         """ """

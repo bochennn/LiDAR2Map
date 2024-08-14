@@ -99,7 +99,9 @@ class CenterPoint(MVXTwoStageDetector, _CenterPoint):
         """Test function without augmentaiton."""
         pts_feats, extra_feats = self.extract_pts_feat(points)
 
-        bbox_list = [dict() for _ in range(len(img_metas))]
+        bbox_list = [dict(gt_bboxes_3d=meta['gt_bboxes_3d'].data,
+                          gt_labels_3d=meta['gt_labels_3d'].data)
+                    for meta in img_metas]
 
         preds_dicts = self.pts_bbox_head(pts_feats)
         results_list = self.pts_bbox_head.get_bboxes(

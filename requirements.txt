@@ -1,5 +1,7 @@
+# pip3 install --no-cache-dir --upgrade https://download.pytorch.org/whl/cu113/torch-1.12.1%2Bcu113-cp38-cp38-linux_x86_64.whl https://download.pytorch.org/whl/cu113/torchvision-0.13.1%2Bcu113-cp38-cp38-linux_x86_64.whl
+# spconv-cu113
 easydict
-efficientnet_pytorch
+einops
 geopandas
 networkx
 open3d
@@ -11,6 +13,7 @@ simplejson
 tabulate
 tensorboardX
 torch_scatter
+triton
 werkzeug<3.0
 yapf==0.40.1
 mmcv-full==1.6.0
