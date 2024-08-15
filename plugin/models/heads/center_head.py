@@ -3,6 +3,7 @@ from typing import Dict, List
 import torch
 from mmcv.runner import force_fp32
 from mmdet3d.core import circle_nms, draw_heatmap_gaussian, gaussian_radius
+from mmdet3d.core.bbox import LiDARInstance3DBoxes
 from mmdet3d.core.bbox.coders.centerpoint_bbox_coders import \
     CenterPointBBoxCoder as _CenterPointBBoxCoder
 from mmdet3d.models.builder import HEADS
@@ -134,46 +135,55 @@ class CenterPointBBoxCoder(_CenterPointBBoxCoder):
 @HEADS.register_module(force=True)
 class CenterHead(_CenterHead):
 
-    def __init__(self, class_names: List = None, tasks: List[Dict] = None, **kwargs):
+    def __init__(
+        self,
+        class_names: List = None,
+        tasks: List[Dict] = None,
+        bbox_coder: Dict = None,
+        out_size_factor: int = 8,
+        **kwargs: Dict,
+    ):
         """ """
-        for task in tasks:
-            task.update(class_names=[class_names.index(c) for c in task['class_names']])
-        super(CenterHead, self).__init__(tasks=tasks, **kwargs)
+        if not isinstance(out_size_factor, list):
+            out_size_factor = [out_size_factor for _ in tasks]
+        self.out_size_factor = out_size_factor
 
+        for ind, task in enumerate(tasks):
+            bbox_coder.update(out_size_factor=out_size_factor[ind])
+            task.update(class_names=[class_names.index(c) for c in task['class_names']])
+
+        super(CenterHead, self).__init__(tasks=tasks, bbox_coder=bbox_coder, **kwargs)
         # self.iou_loss = build_loss(dict(type='IoU3DLoss'))
+
+    def forward(self, lvl_feats: List[torch.Tensor]):
+        """Forward pass.
+
+        Args:
+            feats (list[torch.Tensor]): Multi-level features, e.g.,
+                features produced by FPN.
+
+        Returns:
+            tuple(list[dict]): Output results for tasks.
+        """
+        ret_dicts = []
+        for ind, task in enumerate(self.task_heads):
+            feats = lvl_feats[ind] if len(self.task_heads) == \
+                                    len(lvl_feats) else lvl_feats[0]
+            feats = self.shared_conv(feats)
+            ret_dicts.append(task(feats))
+        return ret_dicts
 
     def get_targets_single(
         self,
-        gt_bboxes_3d,
-        gt_labels_3d: torch.Tensor
+        gt_bboxes_3d: LiDARInstance3DBoxes,
+        gt_labels_3d: torch.Tensor,
     ):
-        """Generate training targets for a single sample.
-
-        Args:
-            gt_bboxes_3d (:obj:`LiDARInstance3DBoxes`): Ground truth gt boxes.
-            gt_labels_3d (torch.Tensor): Labels of boxes.
-
-        Returns:
-            tuple[list[torch.Tensor]]: Tuple of target including
-                the following results in order.
-
-                - list[torch.Tensor]: Heatmap scores.
-                - list[torch.Tensor]: Ground truth boxes.
-                - list[torch.Tensor]: Indexes indicating the position
-                    of the valid boxes.
-                - list[torch.Tensor]: Masks indicating which boxes
-                    are valid.
-        """
         device = gt_labels_3d.device
         gt_bboxes_3d = torch.cat(
-            (gt_bboxes_3d.gravity_center, gt_bboxes_3d.tensor[:, 3:]),
-            dim=1).to(device)
+            (gt_bboxes_3d.gravity_center, gt_bboxes_3d.tensor[:, 3:]), dim=1).to(device)
         max_objs = self.train_cfg['max_objs'] * self.train_cfg['dense_reg']
-        grid_size = torch.tensor(self.train_cfg['grid_size'])
-        pc_range = torch.tensor(self.train_cfg['point_cloud_range'])
-        voxel_size = torch.tensor(self.train_cfg['voxel_size'])
-
-        feature_map_size = torch.div(grid_size[:2], self.train_cfg['out_size_factor'], rounding_mode='trunc')
+        pc_range = self.train_cfg['point_cloud_range']
+        voxel_size = self.train_cfg['voxel_size']
 
         # reorganize the gt_dict by tasks
         task_masks = []
@@ -207,6 +217,10 @@ class CenterHead(_CenterHead):
         heatmaps, anno_boxes, inds, masks = [], [], [], []
 
         for idx, task_head in enumerate(self.task_heads):
+            feature_map_size = \
+                int((pc_range[3] - pc_range[0] + 1e-9) / voxel_size[0]) // self.out_size_factor[idx], \
+                int((pc_range[4] - pc_range[1] + 1e-9) / voxel_size[1]) // self.out_size_factor[idx]
+
             heatmap = gt_bboxes_3d.new_zeros(
                 (len(self.class_names[idx]), feature_map_size[1], feature_map_size[0]))
 
@@ -225,8 +239,8 @@ class CenterHead(_CenterHead):
 
                 width = task_boxes[idx][k][3]
                 length = task_boxes[idx][k][4]
-                width = width / voxel_size[0] / self.train_cfg['out_size_factor']
-                length = length / voxel_size[1] / self.train_cfg['out_size_factor']
+                width = width / voxel_size[0] / self.out_size_factor[idx]
+                length = length / voxel_size[1] / self.out_size_factor[idx]
 
                 if width > 0 and length > 0:
                     radius = gaussian_radius(
@@ -238,8 +252,8 @@ class CenterHead(_CenterHead):
                     # your box annotation.
                     x, y, z = task_boxes[idx][k][0], task_boxes[idx][k][1], task_boxes[idx][k][2]
 
-                    coor_x = (x - pc_range[0]) / voxel_size[0] / self.train_cfg['out_size_factor']
-                    coor_y = (y - pc_range[1]) / voxel_size[1] / self.train_cfg['out_size_factor']
+                    coor_x = (x - pc_range[0]) / voxel_size[0] / self.out_size_factor[idx]
+                    coor_y = (y - pc_range[1]) / voxel_size[1] / self.out_size_factor[idx]
 
                     center = torch.tensor([coor_x, coor_y], dtype=torch.float32, device=device)
                     center_int = center.to(torch.int32)
@@ -296,9 +310,6 @@ class CenterHead(_CenterHead):
         ind: torch.Tensor,
         mask: torch.Tensor,
     ):
-        if isinstance(task_preds, list):
-            task_preds = task_preds[0]
-
         task_preds['heatmap'] = clip_sigmoid(task_preds['heatmap'])
         num_pos = heatmap.eq(1).float().sum().item()
 
@@ -345,7 +356,13 @@ class CenterHead(_CenterHead):
         return loss_heatmap, loss_bbox, iou_loss
 
     @force_fp32(apply_to=('preds_dicts'))
-    def loss(self, gt_bboxes_3d, gt_labels_3d, preds_dicts, **kwargs):
+    def loss(
+        self,
+        gt_bboxes_3d: List[LiDARInstance3DBoxes],
+        gt_labels_3d: List[torch.Tensor],
+        preds_dicts: List[Dict],
+        **kwargs: Dict
+    ) -> Dict:
         """Loss function for CenterHead.
 
         Args:
@@ -357,8 +374,8 @@ class CenterHead(_CenterHead):
         Returns:
             dict[str:torch.Tensor]: Loss of heatmap and bbox of each task.
         """
-        heatmaps, anno_boxes, inds, masks = self.get_targets(
-            gt_bboxes_3d, gt_labels_3d)
+        heatmaps, anno_boxes, inds, masks = self.get_targets(gt_bboxes_3d, gt_labels_3d)
+
         loss_dict = dict()
         for task_id, preds_with_targets in enumerate(
                 zip(preds_dicts, heatmaps, anno_boxes, inds, masks)):
@@ -438,7 +455,6 @@ class CenterHead(_CenterHead):
             for k in task_results[0][i].keys():
                 if k == 'bboxes':
                     bboxes = torch.cat([ret[i][k] for ret in task_results])
-                    # bboxes[:, 2] = bboxes[:, 2] - bboxes[:, 5] * 0.5
                     bboxes = img_metas[i]['box_type_3d'](
                         bboxes, self.bbox_coder.code_size, origin=(0.5, 0.5, 0.5))
                 elif k == 'scores':
@@ -460,11 +476,9 @@ class CenterHead(_CenterHead):
             list[dict]: Decoded bbox, scores and labels after nms.
         """
         task_rets = []
-        for task_id, preds_dict in enumerate(preds_dicts):
+        for task_id, task_preds in enumerate(zip(preds_dicts, self.num_classes)):
             task_rets.append(self.get_bboxes_single(
-                preds_dict[0],
-                self.num_classes[task_id],
-                img_metas, task_id))
+                *task_preds, img_metas, task_id))
 
         # Merge branches results
         return self._merge_task_results(task_rets, img_metas)
