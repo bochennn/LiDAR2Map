@@ -8,29 +8,14 @@ import torch
 from mmcv import Config, DictAction
 from mmcv.cnn import fuse_conv_bn
 from mmcv.parallel import MMDataParallel, MMDistributedDataParallel
-from mmcv.runner import (get_dist_info, init_dist, load_checkpoint,
-                         wrap_fp16_model)
-
-import mmdet
+from mmcv.runner import get_dist_info, init_dist, load_checkpoint, wrap_fp16_model
 from mmdet3d.apis import single_gpu_test
 from mmdet3d.datasets import build_dataloader, build_dataset
 from mmdet3d.models import build_model
 from mmdet.apis import multi_gpu_test, set_random_seed
 from mmdet.datasets import replace_ImageToTensor
-
-if mmdet.__version__ > '2.23.0':
-    # If mmdet version > 2.23.0, setup_multi_processes would be imported and
-    # used from mmdet instead of mmdet3d.
-    from mmdet.utils import setup_multi_processes
-else:
-    from mmdet3d.utils import setup_multi_processes
-
-try:
-    # If mmdet version > 2.23.0, compat_cfg would be imported and
-    # used from mmdet instead of mmdet3d.
-    from mmdet.utils import compat_cfg
-except ImportError:
-    from mmdet3d.utils import compat_cfg
+from mmdet.utils import compat_cfg, setup_multi_processes
+from plugin.utils import convert_sync_batchnorm
 
 
 def parse_args():
@@ -45,11 +30,10 @@ def parse_args():
         help='Whether to fuse conv and bn, this will slightly increase'
         'the inference speed')
     parser.add_argument(
-        '--gpu-ids',
-        type=int,
-        nargs='+',
-        help='(Deprecated, please use --gpu-id) ids of gpus to use '
-        '(only applicable to non-distributed training)')
+        '--sync-bn',
+        action='store_true',
+        help='convert all BatchNorm layers in the model to SyncBatchNorm '
+        '(SyncBN) or mmcv.ops.sync_bn.SyncBatchNorm (MMSyncBN) layers.')
     parser.add_argument(
         '--gpu-id',
         type=int,
@@ -95,13 +79,6 @@ def parse_args():
         'Note that the quotation marks are necessary and that no white space '
         'is allowed.')
     parser.add_argument(
-        '--options',
-        nargs='+',
-        action=DictAction,
-        help='custom options for evaluation, the key-value pair in xxx=yyy '
-        'format will be kwargs for dataset.evaluate() function (deprecate), '
-        'change to --eval-options instead.')
-    parser.add_argument(
         '--eval-options',
         nargs='+',
         action=DictAction,
@@ -117,13 +94,6 @@ def parse_args():
     if 'LOCAL_RANK' not in os.environ:
         os.environ['LOCAL_RANK'] = str(args.local_rank)
 
-    if args.options and args.eval_options:
-        raise ValueError(
-            '--options and --eval-options cannot be both specified, '
-            '--options is deprecated in favor of --eval-options')
-    if args.options:
-        warnings.warn('--options is deprecated in favor of --eval-options')
-        args.eval_options = args.options
     return args
 
 
@@ -157,21 +127,15 @@ def main():
 
     cfg.model.pretrained = None
 
-    if args.gpu_ids is not None:
-        cfg.gpu_ids = args.gpu_ids[0:1]
-        warnings.warn('`--gpu-ids` is deprecated, please use `--gpu-id`. '
-                      'Because we only support single GPU mode in '
-                      'non-distributed testing. Use the first GPU '
-                      'in `gpu_ids` now.')
-    else:
-        cfg.gpu_ids = [args.gpu_id]
-
     # init distributed env first, since logger depends on the dist info.
     if args.launcher == 'none':
         distributed = False
+        rank, cfg.gpu_ids = 0, [args.gpu_id]
     else:
         distributed = True
         init_dist(args.launcher, **cfg.dist_params)
+        rank, word_size = get_dist_info()
+        cfg.gpu_ids = list(range(word_size))
 
     test_dataloader_default_args = dict(
         samples_per_gpu=1, workers_per_gpu=2, dist=distributed, shuffle=False)
@@ -209,6 +173,8 @@ def main():
     fp16_cfg = cfg.get('fp16', None)
     if fp16_cfg is not None:
         wrap_fp16_model(model)
+    if distributed and args.sync_bn:
+        model = convert_sync_batchnorm(model)
     checkpoint = load_checkpoint(model, args.ckpt, map_location='cpu')
     if args.fuse_conv_bn:
         model = fuse_conv_bn(model)
@@ -236,7 +202,6 @@ def main():
         outputs = multi_gpu_test(model, data_loader, args.tmpdir,
                                  args.gpu_collect)
 
-    rank, _ = get_dist_info()
     if rank == 0:
         if args.out:
             print(f'\nwriting results to {args.out}')

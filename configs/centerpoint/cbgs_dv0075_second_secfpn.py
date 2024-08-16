@@ -1,3 +1,5 @@
+from configs.centerpoint.hv01_second_secfpn import data
+
 _base_ = ['./cbgs_dv01_second_secfpn.py']
 
 VOXEL_SIZE = [0.075, 0.075, 8.0]
@@ -33,8 +35,20 @@ model = dict(
     train_cfg=dict(
         pts=dict(
             point_cloud_range=POINT_CLOUD_RANGE,
-            grid_size=VOXEL_GRID_SIZE,
             voxel_size=VOXEL_SIZE,
         )
     )
 )
+
+search = lambda lst, val: next(d for d in lst if d.get('type') == val)
+
+search(data['train']['pipeline'], 'PointsRangeFilter').update(
+    point_cloud_range=POINT_CLOUD_RANGE)
+search(data['train']['pipeline'], 'ObjectRangeFilter').update(
+    point_cloud_range=POINT_CLOUD_RANGE)
+
+# data = dict(
+#     train=dict(pipeline=train_pipeline),
+#     val=dict(pipeline=eval_pipeline),
+#     test=dict(pipeline=eval_pipeline)
+# )

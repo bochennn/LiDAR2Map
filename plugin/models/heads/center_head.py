@@ -6,7 +6,7 @@ from mmdet3d.core import circle_nms, draw_heatmap_gaussian, gaussian_radius
 from mmdet3d.core.bbox import LiDARInstance3DBoxes
 from mmdet3d.core.bbox.coders.centerpoint_bbox_coders import \
     CenterPointBBoxCoder as _CenterPointBBoxCoder
-from mmdet3d.models.builder import HEADS
+from mmdet3d.models.builder import HEADS, build_loss
 from mmdet3d.models.dense_heads.centerpoint_head import \
     CenterHead as _CenterHead
 from mmdet3d.models.utils import clip_sigmoid
@@ -141,6 +141,7 @@ class CenterHead(_CenterHead):
         tasks: List[Dict] = None,
         bbox_coder: Dict = None,
         out_size_factor: int = 8,
+        loss_iou: Dict = None,
         **kwargs: Dict,
     ):
         """ """
@@ -153,7 +154,8 @@ class CenterHead(_CenterHead):
             task.update(class_names=[class_names.index(c) for c in task['class_names']])
 
         super(CenterHead, self).__init__(tasks=tasks, bbox_coder=bbox_coder, **kwargs)
-        # self.iou_loss = build_loss(dict(type='IoU3DLoss'))
+        if loss_iou is not None:
+            self.loss_iou = build_loss(loss_iou)
 
     def forward(self, lvl_feats: List[torch.Tensor]):
         """Forward pass.

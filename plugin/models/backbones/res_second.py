@@ -2,13 +2,13 @@ from typing import Dict, Tuple
 
 import torch
 import torch.nn as nn
-from mmdet3d.models.backbones.second import SECOND
+from mmcv.runner import BaseModule
 from mmdet3d.models.builder import BACKBONES
 from mmdet.models.backbones.resnet import BasicBlock
 
 
 @BACKBONES.register_module()
-class ResSECOND(SECOND):
+class ResSECOND(BaseModule):
     """Backbone network for DSVT. The difference between `ResSECOND` and
     `SECOND` is that the basic block in this module contains residual layers.
 
@@ -26,6 +26,8 @@ class ResSECOND(SECOND):
                  out_channels: Tuple[int] = [128, 128, 256],
                  blocks_nums: Tuple[int] = [1, 2, 2],
                  layer_strides: Tuple[int] = [2, 2, 2],
+                 norm_cfg=dict(type='BN', eps=1e-3, momentum=0.01),
+                 conv_cfg=dict(type='Conv2d', bias=False),
                  init_cfg: Dict = None) -> None:
         super(ResSECOND, self).__init__(init_cfg=init_cfg)
         assert len(layer_strides) == len(blocks_nums)
@@ -34,18 +36,25 @@ class ResSECOND(SECOND):
         in_filters = [in_channels, *out_channels[:-1]]
         blocks = []
         for i, block_num in enumerate(blocks_nums):
-            cur_layers = [
+            block = [
                 BasicBlock(
                     in_filters[i],
                     out_channels[i],
                     stride=layer_strides[i],
-                    downsample=True)
+                    downsample=True,
+                    conv_cfg=conv_cfg,
+                    norm_cfg=norm_cfg)
             ]
             for _ in range(block_num):
-                cur_layers.append(
-                    BasicBlock(out_channels[i], out_channels[i]))
-            blocks.append(nn.Sequential(*cur_layers))
-        self.blocks = nn.Sequential(*blocks)
+                block.append(
+                    BasicBlock(
+                        out_channels[i],
+                        out_channels[i],
+                        conv_cfg=conv_cfg,
+                        norm_cfg=norm_cfg))
+            blocks.append(nn.Sequential(*block))
+
+        self.blocks = nn.ModuleList(blocks)
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, ...]:
         """Forward function.

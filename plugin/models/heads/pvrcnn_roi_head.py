@@ -128,7 +128,7 @@ class PVRCNNRoiHead(Base3DRoIHead):
 
     def predict(
         self,
-        rpn_results_list,
+        rpn_results_list: List[LiDARInstance3DBoxes],
         points: List[torch.Tensor] = None,
         pts_feats: List[torch.Tensor] = None,
         img_metas: List[Dict] = None,
@@ -161,6 +161,8 @@ class PVRCNNRoiHead(Base3DRoIHead):
         """
         assert self.with_bbox, 'Bbox head must be implemented.'
         assert self.with_semantic, 'Semantic head must be implemented.'
+        if len(rpn_results_list[0][0]) == 0:
+            return rpn_results_list
 
         feats_dict = self.pts_encoder(points, pts_feats, voxel_feats,
                                       voxel_coors, rpn_results_list)

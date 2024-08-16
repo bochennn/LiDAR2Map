@@ -7,7 +7,7 @@ model = dict(
         layer_strides=[1, 2, 2]),
     pts_neck=dict(
         _delete_=True,
-        type='MultiScaleFPN',
+        type='MSFPN',
         in_channels=[256, 256, 256],
         out_channels=[256, 256, 256],
         upsample_scales=[2, 2, 2],
@@ -15,7 +15,6 @@ model = dict(
         norm_cfg=dict(type='BN', eps=1e-3, momentum=0.01),
         upsample_cfg=dict(type='bilinear', align_corners=False)),
     pts_bbox_head=dict(
-        type='CenterHead',
         in_channels=256,
         tasks=[
             dict(num_class=2, class_names=['person', 'traffic_cone']),

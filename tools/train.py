@@ -5,7 +5,6 @@ import argparse
 import copy
 import os
 import time
-import warnings
 from os import path as osp
 
 import mmcv
@@ -124,7 +123,7 @@ def main():
         init_dist(args.launcher, **cfg.dist_params)
         # re-set gpu_ids with distributed training mode
         _, world_size = get_dist_info()
-        cfg.gpu_ids = range(world_size)
+        cfg.gpu_ids = list(range(world_size))
 
     if args.autoscale_lr:
         # apply the linear scaling rule (https://arxiv.org/abs/1706.02677)
