@@ -22,7 +22,7 @@ class ZDriveDataset(NuScenesDataset):
         'motorcycle': 'motorcycle',
         'bicycle': 'bicycle',
         'person': 'person',
-        'traffic_cone': 'traffic_cone'
+        'traffic_cone': 'traffic_cone',
     }
 
     def __init__(self,

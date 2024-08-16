@@ -7,7 +7,7 @@ model = dict(
     pts_voxel_encoder=dict(
         type='DynamicSimpleVFE',
         # type='DynamicVFE',
-        # feat_channels=[64, 64],
+        # feat_channels=(64),
         voxel_size=VOXEL_SIZE,
         point_cloud_range=POINT_CLOUD_RANGE),
     # pts_middle_encoder=dict(
@@ -15,4 +15,5 @@ model = dict(
     #     base_channels=64,
     #     encoder_channels=((64, 64, 128), (128, 128, 128), (128, 128, 128), (128, 128)),
     # ),
+    # pts_backbone=dict(type='ResSECOND'),
 )

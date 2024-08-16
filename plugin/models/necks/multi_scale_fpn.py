@@ -36,7 +36,8 @@ class MSFPN(BaseModule):
         self.fpn_convs = nn.ModuleList()
         for i in range(backbone_end_level):
             self.fpn_convs.append(nn.Sequential(
-                ConvModule(in_channels[i] + out_channels[i],
+                ConvModule(in_channels[i] + (
+                    in_channels[i + 1] if i == backbone_end_level - 1 else out_channels[i + 1]),
                            out_channels[i],
                            kernel_size=1,
                            norm_cfg=norm_cfg,
@@ -65,5 +66,5 @@ class MSFPN(BaseModule):
             laterals.insert(0, self.upsample_layer[0](laterals[0]))
 
         # build outputs
-        outs = (laterals[i] for i in self.out_indices)
+        outs = [laterals[i] for i in self.out_indices]
         return tuple(outs)
