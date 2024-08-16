@@ -142,6 +142,8 @@ class CenterHead(_CenterHead):
         bbox_coder: Dict = None,
         out_size_factor: int = 8,
         loss_iou: Dict = None,
+        train_cfg: Dict = None,
+        test_cfg: Dict = None,
         **kwargs: Dict,
     ):
         """ """
@@ -149,11 +151,16 @@ class CenterHead(_CenterHead):
             out_size_factor = [out_size_factor for _ in tasks]
         self.out_size_factor = out_size_factor
 
+        self.min_radius = test_cfg['min_radius'] if train_cfg is None else train_cfg['min_radius']
+        if not isinstance(self.min_radius, list):
+            self.min_radius = [self.min_radius for _ in tasks]
+
         for ind, task in enumerate(tasks):
             bbox_coder.update(out_size_factor=out_size_factor[ind])
             task.update(class_names=[class_names.index(c) for c in task['class_names']])
 
-        super(CenterHead, self).__init__(tasks=tasks, bbox_coder=bbox_coder, **kwargs)
+        super(CenterHead, self).__init__(tasks=tasks, bbox_coder=bbox_coder,
+                                         train_cfg=train_cfg, test_cfg=test_cfg, **kwargs)
         if loss_iou is not None:
             self.loss_iou = build_loss(loss_iou)
 
@@ -248,7 +255,7 @@ class CenterHead(_CenterHead):
                     radius = gaussian_radius(
                         (length, width),
                         min_overlap=self.train_cfg['gaussian_overlap'])
-                    radius = max(self.train_cfg['min_radius'], int(radius))
+                    radius = max(self.min_radius[idx], int(radius))
 
                     # be really careful for the coordinate system of
                     # your box annotation.

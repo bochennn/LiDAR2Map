@@ -15,6 +15,7 @@ model = dict(
         norm_cfg=dict(type='BN', eps=1e-3, momentum=0.01),
         upsample_cfg=dict(type='bilinear', align_corners=False)),
     pts_bbox_head=dict(
-        out_size_factor=[8, 16, 16, 4, 4],
-    )
+        out_size_factor=[8, 16, 16, 4, 4]),
+    # train_cfg=dict(
+    #     pts=dict(min_radius=[3, 2, 2, 3, 1]))
 )
