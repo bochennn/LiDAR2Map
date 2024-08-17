@@ -1,8 +1,9 @@
-from typing import Dict
 import pickle
 from pathlib import Path
+from typing import Dict
 
 import matplotlib.pyplot as plt
+import numpy as np
 
 CLASS_NAMES = [
     'car', 'pickup_truck', 'truck', 'construction_vehicle',
@@ -12,7 +13,7 @@ CLASS_NAMES = [
 
 INFO_ROOT = Path('/home/bochen/workspace/LiDAR2Map/data/zdrive')
 INFO_LIST = {
-    # 'CITY-3D-0529_infos_clip_1134_frames_45116.pkl': 8,
+    # 'CITY-3D-0529_infos_clip_1134_frames_45116.pkl': 2,
     'HY-3D-0529_infos_clip_5933_frames_232061.pkl': 15,
     'E03-CITY-20240702_infos_clip_272_frames_10737.pkl': 2,
     'E03-HY-20240702_infos_clip_1250_frames_49491.pkl': 30,
@@ -34,8 +35,8 @@ def write_info(info_path: Path, info_dict: Dict):
 
 
 def sub_set_with_interval(info_dict: Dict, interval: int):
-    clip_names = {inf['scene_name'] for inf in info_dict['infos']}
-    sub_clip_names = list(clip_names)[::interval]
+    clip_names = np.unique([inf['scene_name'] for inf in info_dict['infos']])
+    sub_clip_names = clip_names[::interval]
 
     new_info = dict(infos=[inf for inf in info_dict['infos'] if inf['scene_name'] in sub_clip_names])
     new_info.update(metadata=dict(

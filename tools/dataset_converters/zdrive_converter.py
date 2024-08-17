@@ -346,4 +346,4 @@ def get_available_scenes(root_path: Path, batch_name: str) -> List[Path]:
             # print(list((fpath / 'annotation').glob('*')))
             continue
         clip_list.append(fpath)
-    return clip_list
+    return sorted(clip_list, key=lambda s: int(s.stem.split('_')[-1]))
