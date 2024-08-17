@@ -24,9 +24,22 @@ def parse_3d_object_detection_anno_info(anno_dict: Dict, prefix: str):
                     ['3d_object_detection_anns_info']
 
 
+def get_closest_pose(pose_record: List, pose_timestamps: float, target_timestamp: int):
+    closest_ind = np.fabs(pose_timestamps - target_timestamp * 1e-6).argmin()
+    global2imu = transform_matrix(
+        list(pose_record[closest_ind]['pose']['position'].values()),
+        Rotation.from_quat([
+            pose_record[closest_ind]['pose']['orientation']['qx'],
+            pose_record[closest_ind]['pose']['orientation']['qy'],
+            pose_record[closest_ind]['pose']['orientation']['qz'],
+            pose_record[closest_ind]['pose']['orientation']['qw']]).as_matrix())
+    return global2imu @ np.linalg.inv(VIRTUAL2IMU), closest_ind
+
+
 def get_virtual_to_imu():
 
     return
+
 
 VIRTUAL2IMU = transform_matrix(
     [0., 0., 0.36],
@@ -86,6 +99,8 @@ CLASS_NAMES = {
 }
 
 LIDAR2IMU_FILEPATH = 'extrinsics/lidar2imu/lidar2imu.yaml'
+search_path = lambda lst, key: next(
+    i for i, path in enumerate(lst) if path['filename'].parent.stem == key)
 
 
 def create_zdrive_infos(root_path: Path, out_dir: Path, batch_name: str, workers: int):
@@ -95,7 +110,7 @@ def create_zdrive_infos(root_path: Path, out_dir: Path, batch_name: str, workers
 
     info_list_by_clip = multi_process_thread(
         _fill_trainval_infos,
-        [dict(clip_root=clip, max_sweeps=10,
+        [dict(clip_root=clip, max_sweeps=5,
               progressbar='[{:6d}/{:6d}] {}'.format(ind, len(available_clips), clip.name))
             for ind, clip in enumerate(available_clips)],
         nprocess=workers)
@@ -104,7 +119,7 @@ def create_zdrive_infos(root_path: Path, out_dir: Path, batch_name: str, workers
     for info_list in info_list_by_clip:
         info_list_by_frame.extend(info_list)
 
-    if len(len(info_list_by_frame)) == 0:
+    if len(info_list_by_frame) == 0:
         return
 
     info_prefix = batch_name.replace('-undownloaded', '')
@@ -124,7 +139,8 @@ def create_zdrive_infos(root_path: Path, out_dir: Path, batch_name: str, workers
         pickle.dump(data, f)
 
 
-def _fill_trainval_infos(clip_root: Path, max_sweeps: int = 10, progressbar: str = '', vis: bool = False) -> List[Dict]:
+def _fill_trainval_infos(clip_root: Path, max_sweeps: int = 5,
+                         progressbar: str = '', vis: bool = False) -> List[Dict]:
     """ """
     if vis:
         from common.fileio import read_points_pcd
@@ -153,7 +169,7 @@ def _fill_trainval_infos(clip_root: Path, max_sweeps: int = 10, progressbar: str
             'scene_name': clip_root.stem,
             'lidars': dict(),
             'cams': dict(),
-            'sweeps': [],
+            'sweeps': {},
             'timestamp': frame_info['lidar_collect'],
         }
 
@@ -189,27 +205,27 @@ def _fill_trainval_infos(clip_root: Path, max_sweeps: int = 10, progressbar: str
             )
             out_info['lidars'].update({lidar_token: lidar_info})
 
-        closest_ind = np.fabs(pose_timestamps - out_info['timestamp'] * 1e-6).argmin()
-        global2imu = transform_matrix(
-            list(pose_record[closest_ind]['pose']['position'].values()),
-            Rotation.from_quat([
-                pose_record[closest_ind]['pose']['orientation']['qx'],
-                pose_record[closest_ind]['pose']['orientation']['qy'],
-                pose_record[closest_ind]['pose']['orientation']['qz'],
-                pose_record[closest_ind]['pose']['orientation']['qw']]).as_matrix())
+        # closest_ind = np.fabs(pose_timestamps - out_info['timestamp'] * 1e-6).argmin()
+        # global2imu = transform_matrix(
+        #     list(pose_record[closest_ind]['pose']['position'].values()),
+        #     Rotation.from_quat([
+        #         pose_record[closest_ind]['pose']['orientation']['qx'],
+        #         pose_record[closest_ind]['pose']['orientation']['qy'],
+        #         pose_record[closest_ind]['pose']['orientation']['qz'],
+        #         pose_record[closest_ind]['pose']['orientation']['qw']]).as_matrix())
 
         lidar2ego = transform_matrix(
             out_info['lidars']['lidar0']['sensor2ego_translation'],
             out_info['lidars']['lidar0']['sensor2ego_rotation']
         )
-        ego2global = global2imu @ np.linalg.inv(VIRTUAL2IMU)
+        # ego2global = global2imu @ np.linalg.inv(VIRTUAL2IMU)
+        ego2global, closest_ind = get_closest_pose(pose_record, pose_timestamps, out_info['timestamp'])
 
         out_info['ego2global_translation'] = ego2global[:3, 3]
         out_info['ego2global_rotation'] = ego2global[:3, :3]
         out_info['ego_velo'] = convert_velos(
             np.asarray(list(pose_record[closest_ind]['pose']['linear_velocity'].values())),
-            ego2global
-        )
+            ego2global)
 
         # in lidar0 coordinate
         od_ann_info = OD_ANNOTATION_PREFIX[ann_path.name](
@@ -235,7 +251,7 @@ def _fill_trainval_infos(clip_root: Path, max_sweeps: int = 10, progressbar: str
             elif ann['is_group']:
                 is_valid = False
             elif ann['category'] in ['car', 'pickup_truck'] and \
-                (ann['size'][0] > 8 or ann['size'][0] < 1 or ann['size'][1] > 2.3 or ann['size'][1] < 1):
+                (ann['size'][0] > 8 or ann['size'][0] < 1 or ann['size'][1] > 2.5 or ann['size'][1] < 1):
                 is_valid = False
             elif ann['category'] in ['bicycle', 'tricycle', 'motorcycle'] and \
                 (ann['size'][0] > 6 or ann['size'][1] > 1.5):
@@ -279,6 +295,38 @@ def _fill_trainval_infos(clip_root: Path, max_sweeps: int = 10, progressbar: str
             #     show_o3d([pts_list[-1]], [{'box3d': box_list[-1],
             #                                'labels': track_list[-1],
             #                                'texts': out_info['gt_names']}])
+
+    raw_frame_list = []
+    for p in clip_root.glob('sample_*'):
+        if not p.is_dir():
+            continue
+        lidar_0 = list(p.glob('lidar0_*.pcd'))
+        if len(lidar_0) == 0:
+            continue
+        cur_timestmap = int(lidar_0[0].stem.split('_')[-2])
+        ego2global, _ = get_closest_pose(pose_record, pose_timestamps, cur_timestmap)
+        raw_frame_list.append(dict(filename=lidar_0[0],
+                                   pose=ego2global,
+                                   timestamp=cur_timestmap))
+
+    raw_frame_list = sorted(raw_frame_list, key=lambda x: x['timestamp'])
+    frame_indices = list(range(len(raw_frame_list)))
+
+    for frame_info in info_list:
+        ann_indx = search_path(raw_frame_list, frame_info['frame_name'])
+
+        ref2global = raw_frame_list[ann_indx]['pose']
+        for raw_frame_ind, raw_frame_info in enumerate(raw_frame_list):
+            adjacent_ind = raw_frame_ind - ann_indx
+            if abs(adjacent_ind) > max_sweeps:
+                continue
+
+            ego2ref = transform_offset(raw_frame_info['pose'], ref2global)
+            frame_info['sweeps'][adjacent_ind] = dict(
+                filename=str(raw_frame_info['filename']),
+                timestamp=raw_frame_info['timestamp'],
+                ego2ref=ego2ref)
+
     if vis:
         show_o3d([np.vstack(pts_list)],
                  [{'box3d': np.vstack(box_list),

@@ -1,7 +1,38 @@
 from pathlib import Path
 from typing import List
 
+import mmcv
 import numpy as np
+
+
+def load_points(pts_filename: str, load_dim: int = 5):
+    """Private function to load point clouds data.
+
+    Args:
+        pts_filename (str): Filename of point clouds data.
+
+    Returns:
+        np.ndarray: An array containing point clouds data.
+    """
+    file_client = mmcv.FileClient(backend='disk')
+
+    try:
+        if pts_filename.endswith('.pcd'):
+            points = read_points_pcd(pts_filename)[:, :load_dim]
+            points[:, 3] /= 255.
+        elif pts_filename.endswith('.bin'):
+            pts_bytes = file_client.get(pts_filename)
+            points = np.frombuffer(pts_bytes, dtype=np.float32).reshape(-1, load_dim)
+        else:
+            raise NotImplementedError(pts_filename)
+
+    except ConnectionError:
+        if pts_filename.endswith('.npy'):
+            points = np.load(pts_filename)
+        else:
+            points = np.fromfile(pts_filename, dtype=np.float32)
+
+    return points
 
 
 def read_points_pcd(

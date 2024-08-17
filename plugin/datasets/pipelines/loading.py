@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Any, Dict, Tuple
 
-import mmcv
+
 import numpy as np
 from mmcv.image import imnormalize
 from mmdet3d.core.points import get_points_type
@@ -10,9 +10,11 @@ from mmdet3d.datasets.pipelines.loading import \
     LoadAnnotations3D as _LoadAnnotations3D
 from mmdet3d.datasets.pipelines.loading import \
     LoadPointsFromFile as _LoadPointsFromFile
+from mmdet3d.datasets.pipelines.loading import \
+    LoadPointsFromMultiSweeps as _LoadPointsFromMultiSweeps
 from PIL import Image
 
-from ...utils import convert_points, rasterize_map, read_points_pcd
+from ...utils import convert_points, rasterize_map, load_points
 
 
 @PIPELINES.register_module(force=True)
@@ -27,37 +29,6 @@ class LoadPointsFromFile(_LoadPointsFromFile):
         super(LoadPointsFromFile, self).__init__(coord_type=coord_type, **kwargs)
         self.convert_ego = convert_ego
 
-    def _load_points(self, pts_filename):
-        """Private function to load point clouds data.
-
-        Args:
-            pts_filename (str): Filename of point clouds data.
-
-        Returns:
-            np.ndarray: An array containing point clouds data.
-        """
-        if self.file_client is None:
-            self.file_client = mmcv.FileClient(**self.file_client_args)
-
-        try:
-            if pts_filename.endswith('.pcd'):
-                points = read_points_pcd(pts_filename)[:, :self.load_dim]
-                points[:, 3] /= 255.
-            elif pts_filename.endswith('.bin'):
-                pts_bytes = self.file_client.get(pts_filename)
-                points = np.frombuffer(pts_bytes, dtype=np.float32).reshape(-1, self.load_dim)
-            else:
-                raise NotImplementedError(pts_filename)
-
-        except ConnectionError:
-            # mmcv.check_file_exist(pts_filename)
-            if pts_filename.endswith('.npy'):
-                points = np.load(pts_filename)
-            else:
-                points = np.fromfile(pts_filename, dtype=np.float32)
-
-        return points
-
     def __call__(self, results):
 
         pts_filename = results['pts_filename']
@@ -65,10 +36,10 @@ class LoadPointsFromFile(_LoadPointsFromFile):
             print(f'pts filepath {pts_filename} not exists!!!')
             return None
 
-        points = self._load_points(pts_filename)
+        points = load_points(pts_filename, self.load_dim)
         points = points[:, self.use_dim]
-        attribute_dims = None
 
+        attribute_dims = None
         if self.shift_height:
             floor_height = np.percentile(points[:, 2], 0.99)
             height = points[:, 2] - floor_height
@@ -77,22 +48,48 @@ class LoadPointsFromFile(_LoadPointsFromFile):
                  np.expand_dims(height, 1), points[:, 3:]], 1)
             attribute_dims = dict(height=3)
 
-        if self.use_color:
-            assert len(self.use_dim) >= 6
-            if attribute_dims is None:
-                attribute_dims = dict()
-            attribute_dims.update(
-                dict(color=[
-                    points.shape[1] - 3,
-                    points.shape[1] - 2,
-                    points.shape[1] - 1,
-                ]))
-
         if 'lidar2ego' in results and self.convert_ego:
             points = convert_points(points, results['lidar2ego'])
+
         points_class = get_points_type(self.coord_type)
         points = points_class(
             points, points_dim=points.shape[-1], attribute_dims=attribute_dims)
+        results['points'] = points
+        return results
+
+
+@PIPELINES.register_module(force=True)
+class LoadPointsFromMultiSweeps(_LoadPointsFromMultiSweeps):
+
+    def __init__(
+        self,
+        sweep_indices: Tuple[int] = [-2, -1, 0],
+        use_dim: Tuple[int] = [0, 1, 2, 3, 4],
+        convert_ego: bool = False,
+        coord_type: str = 'LIDAR',
+        **kwargs: Dict
+    ):
+        self.sweep_indices = sweep_indices
+        self.convert_ego = convert_ego
+        self.coord_type = coord_type
+        super(LoadPointsFromMultiSweeps, self).__init__(
+            sweeps_num=len(sweep_indices),
+            use_dim=use_dim, **kwargs)
+
+    def __call__(self, results: Dict):
+        sweep_points_list, ts = [], results['timestamp']
+
+        for i in self.sweep_indices:
+            adj_sweep = results['sweeps'].get(i, 0)
+            points_sweep = load_points(adj_sweep['filename'])[:, self.use_dim]
+            points_sweep = convert_points(points_sweep, adj_sweep['ego2ref'] @ results['lidar2ego'])
+            points_sweep[:, self.time_dim] = ts - adj_sweep['timestamp'] * 1e-6
+            sweep_points_list.append(points_sweep)
+        points = np.vstack(sweep_points_list)
+
+        points_class = get_points_type(self.coord_type)
+        points = points_class(
+            points, points_dim=points.shape[-1], attribute_dims=None)
         results['points'] = points
         return results
 

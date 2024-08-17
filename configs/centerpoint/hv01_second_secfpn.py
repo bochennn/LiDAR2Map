@@ -121,7 +121,7 @@ train_pipeline = [
     # dict(type='GlobalRotScaleTrans',
     #      rot_range=[-0.78539816, 0.78539816],
     #      scale_ratio_range=[0.95, 1.05],
-    #      translation_std=[0, 0, 0.1]),
+    #      translation_std=[0, 0, 0.01]),
     # dict(type='RandomFlip3D')
     dict(type='DefaultFormatBundle3D', class_names=CLASS_NAMES),
     dict(type='Collect3D',

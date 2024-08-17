@@ -39,16 +39,3 @@ model = dict(
         )
     )
 )
-
-search = lambda lst, val: next(d for d in lst if d.get('type') == val)
-
-search(data['train']['pipeline'], 'PointsRangeFilter').update(
-    point_cloud_range=POINT_CLOUD_RANGE)
-search(data['train']['pipeline'], 'ObjectRangeFilter').update(
-    point_cloud_range=POINT_CLOUD_RANGE)
-
-# data = dict(
-#     train=dict(pipeline=train_pipeline),
-#     val=dict(pipeline=eval_pipeline),
-#     test=dict(pipeline=eval_pipeline)
-# )
