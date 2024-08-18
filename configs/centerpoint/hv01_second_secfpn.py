@@ -7,8 +7,8 @@ _base_ = [
 custom_imports = dict(imports=['plugin.models'], allow_failed_imports=False)
 
 VOXEL_SIZE = [0.1, 0.1, 0.2]
-# POINT_CLOUD_RANGE = [-76.0, -76.8, -3.0, 116.0, 76.8, 5.0]
-POINT_CLOUD_RANGE = [-82.4, -76.8, -3.0, 122.4, 76.8, 5.0]
+POINT_CLOUD_RANGE = [-72.0, -76.8, -3.0, 120.0, 76.8, 5.0]
+# POINT_CLOUD_RANGE = [-82.4, -76.8, -3.0, 122.4, 76.8, 5.0]
 # 2048, 1536, 40
 VOXEL_GRID_SIZE = [
     int((POINT_CLOUD_RANGE[3] - POINT_CLOUD_RANGE[0] + 1e-9) / VOXEL_SIZE[0]),
