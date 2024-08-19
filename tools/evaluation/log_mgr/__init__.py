@@ -1,1 +1,1 @@
-from .logger import sys_logger as logger
+from .logger import SYS_LOGGER as logger

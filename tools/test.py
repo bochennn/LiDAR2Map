@@ -1,21 +1,19 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 import argparse
 import os
-import warnings
 
 import mmcv
 import torch
 from mmcv import Config, DictAction
 from mmcv.cnn import fuse_conv_bn
 from mmcv.parallel import MMDataParallel, MMDistributedDataParallel
-from mmcv.runner import get_dist_info, init_dist, load_checkpoint, wrap_fp16_model
+from mmcv.runner import get_dist_info, init_dist, load_checkpoint
 from mmdet3d.apis import single_gpu_test
 from mmdet3d.datasets import build_dataloader, build_dataset
 from mmdet3d.models import build_model
 from mmdet.apis import multi_gpu_test, set_random_seed
-from mmdet.datasets import replace_ImageToTensor
 from mmdet.utils import compat_cfg, setup_multi_processes
-from plugin.utils import convert_sync_batchnorm
+# from plugin.utils import convert_sync_batchnorm
 
 
 def parse_args():
@@ -54,13 +52,12 @@ def parse_args():
         ' "segm", "proposal" for COCO, and "mAP", "recall" for PASCAL VOC')
     parser.add_argument('--show', action='store_true', help='show results')
     parser.add_argument(
-        '--show-dir', help='directory where results will be saved')
-    parser.add_argument(
         '--gpu-collect',
         action='store_true',
         help='whether to use gpu to collect results.')
     parser.add_argument(
         '--tmpdir',
+        default='.dist_test',
         help='tmp directory used for collecting results from multiple '
         'workers, available when gpu-collect is not specified')
     parser.add_argument('--seed', type=int, default=0, help='random seed')
@@ -100,17 +97,19 @@ def parse_args():
 def main():
     args = parse_args()
 
-    assert args.out or args.eval or args.format_only or args.show \
-        or args.show_dir, \
+    assert args.out or args.eval or args.format_only or args.show, \
         ('Please specify at least one operation (save/eval/format/show the '
          'results / save the results) with the argument "--out", "--eval"'
-         ', "--format-only", "--show" or "--show-dir"')
+         ', "--format-only", "--show"')
 
     if args.eval and args.format_only:
         raise ValueError('--eval and --format_only cannot be both specified')
 
-    if args.out is not None and not args.out.endswith(('.pkl', '.pickle')):
-        raise ValueError('The output file must be a pkl file.')
+    # if args.out is not None and not args.out.endswith(('.pkl', '.pickle')):
+    #     raise ValueError('The output file must be a pkl file.')
+
+    if not args.out:
+        args.out = args.ckpt.rsplit('/', 1)[0]
 
     cfg = Config.fromfile(args.config)
     if args.cfg_options is not None:
@@ -140,20 +139,6 @@ def main():
     test_dataloader_default_args = dict(
         samples_per_gpu=1, workers_per_gpu=2, dist=distributed, shuffle=False)
 
-    # in case the test dataset is concatenated
-    if isinstance(cfg.data.test, dict):
-        cfg.data.test.test_mode = True
-        if cfg.data.test_dataloader.get('samples_per_gpu', 1) > 1:
-            # Replace 'ImageToTensor' to 'DefaultFormatBundle'
-            cfg.data.test.pipeline = replace_ImageToTensor(
-                cfg.data.test.pipeline)
-    elif isinstance(cfg.data.test, list):
-        for ds_cfg in cfg.data.test:
-            ds_cfg.test_mode = True
-        if cfg.data.test_dataloader.get('samples_per_gpu', 1) > 1:
-            for ds_cfg in cfg.data.test:
-                ds_cfg.pipeline = replace_ImageToTensor(ds_cfg.pipeline)
-
     test_loader_cfg = {
         **test_dataloader_default_args,
         **cfg.data.get('test_dataloader', {})
@@ -170,14 +155,16 @@ def main():
     # build the model and load checkpoint
     cfg.model.train_cfg = None
     model = build_model(cfg.model, test_cfg=cfg.get('test_cfg'))
-    fp16_cfg = cfg.get('fp16', None)
-    if fp16_cfg is not None:
-        wrap_fp16_model(model)
-    if distributed and args.sync_bn:
-        model = convert_sync_batchnorm(model)
+    # fp16_cfg = cfg.get('fp16', None)
+    # if fp16_cfg is not None:
+    #     wrap_fp16_model(model)
+    # if distributed and args.sync_bn:
+    #     model = convert_sync_batchnorm(model)
     checkpoint = load_checkpoint(model, args.ckpt, map_location='cpu')
+
     if args.fuse_conv_bn:
         model = fuse_conv_bn(model)
+
     # old versions did not save class info in checkpoints, this walkaround is
     # for backward compatibility
     if 'CLASSES' in checkpoint.get('meta', {}):
@@ -193,19 +180,18 @@ def main():
 
     if not distributed:
         model = MMDataParallel(model, device_ids=cfg.gpu_ids)
-        outputs = single_gpu_test(model, data_loader, args.show, args.show_dir)
+        outputs = single_gpu_test(model, data_loader, args.show, args.out)
     else:
         model = MMDistributedDataParallel(
             model.cuda(),
             device_ids=[torch.cuda.current_device()],
             broadcast_buffers=False)
-        outputs = multi_gpu_test(model, data_loader, args.tmpdir,
-                                 args.gpu_collect)
+        outputs = multi_gpu_test(model, data_loader, args.tmpdir, args.gpu_collect)
 
     if rank == 0:
         if args.out:
             print(f'\nwriting results to {args.out}')
-            mmcv.dump(outputs, args.out)
+            mmcv.dump(outputs, f'{args.out}/results.pkl')
         kwargs = {} if args.eval_options is None else args.eval_options
         if args.format_only:
             dataset.format_results(outputs, **kwargs)
@@ -213,11 +199,9 @@ def main():
             eval_kwargs = cfg.get('evaluation', {}).copy()
             # hard-code way to remove EvalHook args
             for key in [
-                    'interval', 'tmpdir', 'start', 'gpu_collect', 'save_best',
-                    'rule'
-            ]:
+                'interval', 'tmpdir', 'start', 'gpu_collect', 'save_best', 'rule']:
                 eval_kwargs.pop(key, None)
-            eval_kwargs.update(dict(metric=args.eval, **kwargs))
+            eval_kwargs.update(dict(metric=args.eval, out_dir=args.out, **kwargs))
             print(dataset.evaluate(outputs, **eval_kwargs))
 
 

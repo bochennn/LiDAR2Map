@@ -1,11 +1,12 @@
 import os
 from datetime import datetime
 import logging
-
+import sys
 
 __all__ = ["sys_logger"]
-INITIALIZED = False
+
 TASK_NAME = None
+SYS_LOGGER = None
 
 
 class MultiLineFormatter(logging.Formatter):
@@ -26,40 +27,47 @@ class MultiLineFormatter(logging.Formatter):
         return head + ''.join(indent + line for line in trailing)
 
 
-def init_logger(name="evaluation"):
+def init_logger(name="evaluation", logdir=None) -> bool:
+    global SYS_LOGGER
+    if SYS_LOGGER is not None:
+        return False
+
     # init log file
-    root_path = os.path.dirname(os.path.dirname(__file__))
-    log_path = os.path.join(root_path, "log")
-    os.makedirs(log_path, exist_ok=True)
+    # root_path = os.path.dirname(os.path.dirname(__file__))
+    # log_path = os.path.join(root_path, "log")
     now = datetime.now().strftime("%Y-%m%d-%H%M%S")
     global TASK_NAME
     TASK_NAME = now
-    # log_file = os.path.join(log_path, "{}_{}.log".format(name, now))
 
     # init logger, stream handler and file handler
     logger = logging.getLogger(name)
-    sh = logging.StreamHandler()
-    # fh = logging.FileHandler(log_file)
 
     # set format and logging level for logger
     formatter = logging.Formatter(
         '[%(asctime)s][%(process)d][%(filename)-20s: %(lineno)-5d][%(levelname)s] %(message)s')
     # formatter = MultiLineFormatter(
     #     '[%(asctime)s][%(process)d][%(filename)-20s: %(lineno)-5d][%(levelname)s] %(message)s')
+
+    sh = logging.StreamHandler()
     sh.setFormatter(formatter)
-    # fh.setFormatter(formatter)
     sh.setLevel(logging.INFO)
-    # fh.setLevel(logging.DEBUG)
     logger.setLevel(logging.DEBUG)
     logger.propagate = False
 
     if not logger.handlers:
         logger.addHandler(sh)
-        # logger.addHandler(fh)
-    # logger.info("{} logger initialized, log file saved to {}".format(name, log_file))
-    return logger
 
+    if logdir is not None:
+        os.makedirs(logdir, exist_ok=True)
+        log_file = os.path.join(logdir, "{}_{}.log".format(name, now))
 
-if not INITIALIZED:
-    sys_logger = init_logger()
-    INITIALIZED = True
+        fh = logging.FileHandler(log_file)
+        fh.setFormatter(formatter)
+        fh.setLevel(logging.DEBUG)
+        logger.addHandler(fh)
+        logger.info("{} logger initialized, log file saved to {}".format(name, log_file))
+
+    SYS_LOGGER = logger
+    sys.modules.pop('tools.evaluation.log_mgr')
+    return True
+

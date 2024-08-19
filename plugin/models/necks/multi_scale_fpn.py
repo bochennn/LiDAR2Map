@@ -2,8 +2,7 @@ from typing import Dict, List
 
 import torch
 import torch.nn as nn
-from mmcv.cnn import ConvModule
-from mmcv.cnn import build_upsample_layer
+from mmcv.cnn import ConvModule, build_upsample_layer
 from mmcv.runner import BaseModule
 from mmdet3d.models.builder import NECKS
 
@@ -29,9 +28,21 @@ class MSFPN(BaseModule):
 
         self.upsample_layer = nn.ModuleList()
         for i, upsample_scale in enumerate(upsample_scales):
-            self.upsample_layer.append(
-                build_upsample_layer(
-                    upsample_cfg, scale_factor=upsample_scale))
+            upsample_layer = build_upsample_layer(
+                    upsample_cfg, scale_factor=upsample_scale)
+
+            if len(upsample_scales) > backbone_end_level and i == 0:
+                upsample_layer = nn.Sequential(
+                    upsample_layer,
+                    ConvModule(out_channels[i],
+                               out_channels[i],
+                               kernel_size=3,
+                               padding=1,
+                               norm_cfg=norm_cfg,
+                               act_cfg=act_cfg,
+                               inplace=False)
+                )
+            self.upsample_layer.append(upsample_layer)
 
         self.fpn_convs = nn.ModuleList()
         for i in range(backbone_end_level):

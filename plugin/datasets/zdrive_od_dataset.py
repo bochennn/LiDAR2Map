@@ -263,11 +263,9 @@ class ZDriveDataset(NuScenesDataset):
 
         results_dict = self.format_results(results)
 
-        if jsonfile_prefix is not None:
-            mmcv.mkdir_or_exist(jsonfile_prefix)
-            res_path = f'{jsonfile_prefix}/results_zdrive_od.pkl'
-            logger.info('Results writes to', res_path)
-            mmcv.dump(results_dict, res_path)
+        if out_dir:
+            from tools.evaluation.log_mgr.logger import init_logger
+            init_logger(logdir=out_dir)
 
         from tools.evaluation.config import ConfigParser
         from tools.evaluation.tasks import ObstacleEval
@@ -282,5 +280,8 @@ class ZDriveDataset(NuScenesDataset):
         for cat_id in range(len(od_eval.category)):
             eval_metrics[f'AP@50/{od_eval.category[cat_id]}'] = od_eval.bbox_eval_result[
                 cat_id + cat_id * len(od_eval.distance)]['AP@50']
+
+        if out_dir:
+            mmcv.dump(od_eval.bbox_eval_result, f'{out_dir}/metrics.json', indent=4, sort_keys=False)
 
         return eval_metrics
