@@ -4,6 +4,7 @@ easydict
 einops
 geopandas
 networkx
+numpy==1.23.5
 open3d
 pyproj
 pyquaternion
@@ -12,7 +13,7 @@ shapely==2.0.1
 simplejson
 tabulate
 tensorboardX
-torch_scatter
+torch-scatter
 triton
 werkzeug<3.0
 yapf==0.40.1

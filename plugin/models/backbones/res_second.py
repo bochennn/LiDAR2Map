@@ -35,19 +35,15 @@ class ResSECOND(BaseModule):
 
         in_filters = [in_channels, *out_channels[:-1]]
         blocks = []
-
         for i, layer_num in enumerate(layer_nums):
-
-            block = ResLayer(
+            blocks.append(ResLayer(
                 block=BasicBlock,
                 inplanes=in_filters[i],
                 planes=out_channels[i],
                 stride=layer_strides[i],
                 num_blocks=layer_num,
                 norm_cfg=norm_cfg,
-                downsample_first=True)
-            blocks.append(block)
-
+                downsample_first=True))
         self.blocks = nn.ModuleList(blocks)
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, ...]:

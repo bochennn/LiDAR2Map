@@ -263,9 +263,8 @@ class ZDriveDataset(NuScenesDataset):
 
         results_dict = self.format_results(results)
 
-        if out_dir:
-            from tools.evaluation.log_mgr.logger import init_logger
-            init_logger(logdir=out_dir)
+        from tools.evaluation.log_mgr.logger import init_logger
+        init_logger() if out_dir is None else init_logger(logdir=out_dir)
 
         from tools.evaluation.config import ConfigParser
         from tools.evaluation.tasks import ObstacleEval
