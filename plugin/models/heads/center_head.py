@@ -79,9 +79,9 @@ class CenterPointBBoxCoder(_CenterPointBBoxCoder):
         scores = scores.view(batch, self.max_num)
 
         xs = xs.view(batch, self.max_num, 1) * \
-            self.out_size_factor * self.voxel_size[0] + self.pc_range[0]
+            self.out_size_factor[task_id] * self.voxel_size[0] + self.pc_range[0]
         ys = ys.view(batch, self.max_num, 1) * \
-            self.out_size_factor * self.voxel_size[1] + self.pc_range[1]
+            self.out_size_factor[task_id] * self.voxel_size[1] + self.pc_range[1]
 
         if vel is None:  # KITTI FORMAT
             final_box_preds = torch.cat([xs, ys, hei, dim, rot], dim=2)
@@ -151,16 +151,17 @@ class CenterHead(_CenterHead):
             out_size_factor = [out_size_factor for _ in tasks]
         self.out_size_factor = out_size_factor
 
+        bbox_coder.update(out_size_factor=out_size_factor)
+        for task in tasks:
+            task.update(class_names=[class_names.index(c) for c in task['class_names']])
+
         self.min_radius = test_cfg['min_radius'] if train_cfg is None else train_cfg['min_radius']
         if not isinstance(self.min_radius, list):
             self.min_radius = [self.min_radius for _ in tasks]
 
-        for ind, task in enumerate(tasks):
-            bbox_coder.update(out_size_factor=out_size_factor[ind])
-            task.update(class_names=[class_names.index(c) for c in task['class_names']])
-
         super(CenterHead, self).__init__(tasks=tasks, bbox_coder=bbox_coder,
                                          train_cfg=train_cfg, test_cfg=test_cfg, **kwargs)
+
         if loss_iou is not None:
             self.loss_iou = build_loss(loss_iou)
 
@@ -225,7 +226,7 @@ class CenterHead(_CenterHead):
         draw_gaussian = draw_heatmap_gaussian
         heatmaps, anno_boxes, inds, masks = [], [], [], []
 
-        for idx, task_head in enumerate(self.task_heads):
+        for idx, _ in enumerate(self.task_heads):
             feature_map_size = \
                 int((pc_range[3] - pc_range[0] + 1e-9) / voxel_size[0]) // self.out_size_factor[idx], \
                 int((pc_range[4] - pc_range[1] + 1e-9) / voxel_size[1]) // self.out_size_factor[idx]

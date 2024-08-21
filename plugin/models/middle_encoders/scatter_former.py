@@ -22,21 +22,21 @@ class ScatterFormer(SparseEncoder):
         self.post_former_layer.add_module(
             f'post_former_layer0',
             SparseSequential(
-                ScatterFormerLayer3x(128, nhead=4, num_layers=3,
+                ScatterFormerLayer3x(output_channels, nhead=4, num_layers=3,
                                      win_size=attn_window_size,
                                      indice_key='scatter_former'),
-                nn.BatchNorm1d(128, eps=1e-3, momentum=0.01),
-                SparseConv3d(128, 128, 3, stride=(1, 2, 2), padding=1,
+                nn.BatchNorm1d(output_channels, eps=1e-3, momentum=0.01),
+                SparseConv3d(output_channels, output_channels, 3, stride=(1, 2, 2), padding=1,
                              bias=False, indice_key='spconv_down')))
 
         self.post_former_layer.add_module(
             f'post_former_layer1',
             SparseSequential(
-                ScatterFormerLayer3x(128, nhead=4, num_layers=3,
+                ScatterFormerLayer3x(output_channels, nhead=4, num_layers=3,
                                      win_size=attn_window_size,
                                      indice_key='scatter_former'),
-                nn.BatchNorm1d(128, eps=1e-3, momentum=0.01),
-                AttnPillarPool(128, self.sparse_shape[0] // 8)))
+                nn.BatchNorm1d(output_channels, eps=1e-3, momentum=0.01),
+                AttnPillarPool(output_channels, self.sparse_shape[0] // 8)))
 
     def forward(self, voxel_features, coors, batch_size):
         """ """
