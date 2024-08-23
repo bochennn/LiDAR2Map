@@ -55,8 +55,8 @@ def filter_person_size(anno_box: Dict):
 
 
 OD_ANNOTATION_PREFIX = {
-    '3d_city_object_detection_with_fish_eye': parse_3d_object_detection_anno_info,
-    '3d_highway_object_detection_with_fish_eye': parse_3d_object_detection_anno_info,
+    # '3d_city_object_detection_with_fish_eye': parse_3d_object_detection_anno_info,
+    # '3d_highway_object_detection_with_fish_eye': parse_3d_object_detection_anno_info,
     'only_3d_city_object_detection': parse_3d_object_detection_anno_info,
     '23d_object_detection': parse_23d_object_detection_anno_info,
 }
@@ -122,7 +122,7 @@ def create_zdrive_infos(root_path: Path, out_dir: Path, batch_name: str, workers
     if len(info_list_by_frame) == 0:
         return
 
-    info_prefix = batch_name.replace('-undownloaded', '')
+    info_prefix = batch_name #.replace('-undownloaded', '')
     metadata = dict(
         version=info_prefix,
         num_clips=len(info_list_by_clip),
@@ -149,8 +149,12 @@ def _fill_trainval_infos(clip_root: Path, max_sweeps: int = 5,
     imu2lidar_dict = yaml.safe_load((clip_root / LIDAR2IMU_FILEPATH).read_text().replace('\t', '    '))
     imu2lidar = transform_matrix(
         list(imu2lidar_dict['transform']['translation'].values()),
-        Rotation.from_quat(list(imu2lidar_dict['transform']['rotation'].values())).as_matrix()
-    )
+        Rotation.from_quat([
+            imu2lidar_dict['transform']['rotation']['x'],
+            imu2lidar_dict['transform']['rotation']['y'],
+            imu2lidar_dict['transform']['rotation']['z'],
+            imu2lidar_dict['transform']['rotation']['w'],
+        ]).as_matrix())
 
     pose_record = json.loads((clip_root / 'localization.json').read_text())
     pose_timestamps = np.asarray([p['timestamp'] for p in pose_record])

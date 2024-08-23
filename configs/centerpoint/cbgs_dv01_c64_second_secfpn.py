@@ -10,5 +10,4 @@ model = dict(
         base_channels=64,
         encoder_channels=((64, 64, 128), (128, 128, 128), (128, 128, 128), (128, 128)),
     ),
-    # pts_backbone=dict(type='ResSECOND'),
 )

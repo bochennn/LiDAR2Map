@@ -1,4 +1,4 @@
-_base_ = ['./cbgs_dv01_second_secfpn.py']
+_base_ = ['./cbgs_dv01_c64_second_secfpn.py']
 
 model = dict(
     pts_bbox_head=dict(

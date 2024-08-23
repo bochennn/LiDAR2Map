@@ -4,7 +4,7 @@ CLASS_NAMES = [
 ]
 
 DATASET_TYPE = 'ZDriveDataset'
-INFO_ROOT = 'data/zdrive'
+INFO_ROOT = '/data/sfs_turbo/dataset/data_info'
 
 data = dict(
     samples_per_gpu=4,
@@ -13,21 +13,19 @@ data = dict(
         type=DATASET_TYPE, classes=CLASS_NAMES,
         data_root=INFO_ROOT,
         ann_files=[
-            f'{INFO_ROOT}/CITY-3D-0529_infos_clip_1134_frames_45116.pkl',
-            f'{INFO_ROOT}/HY-3D-0529_interval_15_clip_396_frames_15504.pkl']),
+            f'{INFO_ROOT}/CITY-ONLY-3D-L2+-NON-E03_interval_4_clip_883_frame_35041.pkl',
+            f'{INFO_ROOT}/HIGHWAY-23D-L2+-NON-E03_interval_18_clip_389_frame_15377.pkl']),
     val=dict(
         type=DATASET_TYPE, classes=CLASS_NAMES,
         data_root=INFO_ROOT,
         ann_files=[
-            f'{INFO_ROOT}/E03-CITY-20240702_interval_2_clip_136_frames_5371.pkl',
-            f'{INFO_ROOT}/E03-HY-20240702_interval_30_clip_42_frames_1670.pkl'],
+            f'{INFO_ROOT}/HIGHWAY-23D-L2+-NON-E03_val_clip_217_frame_8566.pkl'],
         test_mode=True),
     test=dict(
         type=DATASET_TYPE, classes=CLASS_NAMES,
         data_root=INFO_ROOT,
         ann_files=[
-            f'{INFO_ROOT}/NON-E03-CITY-20240702_interval_2_clip_468_frames_18548.pkl',
-            f'{INFO_ROOT}/NON-E03-HY-20240702_interval_30_clip_187_frames_7396.pkl'],
+            f'{INFO_ROOT}/HIGHWAY-23D-L2+-NON-E03_test_clip_1083_frame_42647.pkl'],
         test_mode=True)
 )
 

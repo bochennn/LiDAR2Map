@@ -118,11 +118,11 @@ train_pipeline = [
     dict(type='ObjectRangeFilter',
          point_cloud_range=POINT_CLOUD_RANGE),
     dict(type='ObjectNameFilter', classes=CLASS_NAMES),
-    # dict(type='GlobalRotScaleTrans',
-    #      rot_range=[-0.78539816, 0.78539816],
-    #      scale_ratio_range=[0.95, 1.05],
-    #      translation_std=[0, 0, 0.01]),
-    # dict(type='RandomFlip3D')
+    dict(type='GlobalRotScaleTrans',
+         rot_range=[-0.78539816, 0.78539816],
+         scale_ratio_range=[0.95, 1.05],
+         translation_std=[0.05, 0.05, 0.05]),
+    dict(type='RandomFlip3D'),
     dict(type='DefaultFormatBundle3D', class_names=CLASS_NAMES),
     dict(type='Collect3D',
          keys=['points', 'gt_bboxes_3d', 'gt_labels_3d'])

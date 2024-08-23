@@ -1,6 +1,6 @@
 from configs.centerpoint.hv01_second_secfpn import VOXEL_SIZE, POINT_CLOUD_RANGE
 
-_base_ = ['./cbgs_dv01_second_secfpn.py']
+_base_ = ['./cbgs_dv01_c64_second_secfpn.py']
 
 model = dict(
     pts_middle_encoder=dict(out_indices=[1, 3]),

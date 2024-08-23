@@ -10,4 +10,5 @@ data = dict(
         dataset=dict(**_data['train'], pipeline=train_pipeline),
     ),
 )
-runner = dict(max_epochs=9)
+
+runner = dict(max_epochs=8)

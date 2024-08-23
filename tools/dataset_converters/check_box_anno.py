@@ -1,8 +1,9 @@
 import pickle
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List
 
-import matplotlib.pyplot as plt
+import time
+# import matplotlib.pyplot as plt
 import numpy as np
 
 CLASS_NAMES = [
@@ -11,15 +12,24 @@ CLASS_NAMES = [
     # 'traffic_warning' 'barrier' 'recreational_vehicle'
 ]
 
-INFO_ROOT = Path('/home/bochen/workspace/LiDAR2Map/data/zdrive')
+INFO_ROOT = Path('/data/sfs_turbo/dataset/data_info')
+TEST_HIGHWAY = Path('/data/sfs_turbo/dataset/data_split/test_highway.txt')
+
 INFO_LIST = {
-    # 'CITY-3D-0529_infos_clip_1134_frames_45116.pkl': 2,
-    'HY-3D-0529_infos_clip_5933_frames_232061.pkl': 15,
-    'E03-CITY-20240702_infos_clip_272_frames_10737.pkl': 2,
-    'E03-HY-20240702_infos_clip_1250_frames_49491.pkl': 30,
-    'NON-E03-CITY-20240702_infos_clip_935_frames_37048.pkl': 2,
-    'NON-E03-HY-20240702_infos_clip_5583_frames_220673.pkl': 30,
+    # 'CITY-ONLY-3D-L2+-NON-E03': [
+    #     'CITY-ONLY-3D-L2+-NON-E03-240423_infos_clip_1764_frames_69848.pkl',
+    #     'CITY-ONLY-3D-L2+-NON-E03-240529_infos_clip_1134_frames_45116.pkl',
+    #     'CITY-ONLY-3D-L2+-NON-E03-240702_infos_clip_935_frames_37048.pkl'],
+    'HIGHWAY-23D-L2+-NON-E03': [
+        'HIGHWAY-23D-L2+-NON-E03-240423_infos_clip_4529_frames_178509.pkl',
+        'HIGHWAY-23D-L2+-NON-E03-240529_infos_clip_5933_frames_232061.pkl',
+        'HIGHWAY-23D-L2+-NON-E03-240702_infos_clip_5583_frames_220673.pkl'],
 }
+
+
+def to_format_time(timestamp, time_format='%Y%m%d%H'):
+    return time.strftime(time_format, time.localtime(timestamp * 1e-3))
+
 
 def load_info(info_path: Path):
     with open(info_path, 'rb') as f:
@@ -34,22 +44,30 @@ def write_info(info_path: Path, info_dict: Dict):
     print('write info', info_path)
 
 
-def sub_set_with_interval(info_dict: Dict, interval: int):
-    clip_names = np.unique([inf['scene_name'] for inf in info_dict['infos']])
-    sub_clip_names = clip_names[::interval]
+def sample_with_interval(info_list: List, info_name: str, interval: int):
+    clip_names = np.unique([inf['scene_name'] for inf in info_list])
+    clip_names.sort()
 
-    new_info = dict(infos=[inf for inf in info_dict['infos'] if inf['scene_name'] in sub_clip_names])
+    # clip_time_h, clip_indices = np.unique([
+    #     to_format_time(int(n.split('_')[-1])) for n in clip_names], return_inverse=True)
+    # clip_exclude_date = np.hstack([clip_names[clip_indices == i] for i, n in 
+    #     enumerate(clip_time_h) if n intestset_by_hour ])
+    # sample_clip_names = clip_exclude_date[::interval]
+
+    clip_included = [n for n in clip_names if n in testset_highway]
+    sample_clip_names = clip_included[::interval]
+
+    new_info = dict(infos=[inf for inf in info_list if inf['scene_name'] in sample_clip_names])
     new_info.update(metadata=dict(
-        version=info_dict['metadata']['version'],
-        num_clips=len(sub_clip_names), num_frames=len(new_info['infos'])
+        version=info_name,
+        num_clips=len(sample_clip_names), num_frames=len(new_info['infos'])
     ))
-    print('create sub info', new_info['metadata'])
     return new_info
 
 
-def box_size_by_class(info_dict: Dict):
+def box_size_by_class(info_list: List):
     cls_box_size = dict()
-    for info in info_dict['infos']:
+    for info in info_list:
         for box, cls_name in zip(info['gt_boxes'], info['gt_names']):
             if cls_name in cls_box_size:
                 cls_box_size[cls_name].append(box[3:6])
@@ -58,21 +76,29 @@ def box_size_by_class(info_dict: Dict):
     return cls_box_size
 
 
-for info_path, sub_set_interval in INFO_LIST.items():
-    info_dict = load_info(INFO_ROOT / info_path)
-    new_info_dict = sub_set_with_interval(info_dict, interval=sub_set_interval)
+testset_highway = TEST_HIGHWAY.read_text().splitlines()
+testset_by_hour = np.unique([
+    to_format_time(int(n.split('_')[-1])) for n in testset_highway])
+sample_interval = 5
 
-    info_name = info_path.split('_')[0]
-    assert info_name == info_dict['metadata']['version'] == new_info_dict['metadata']['version']
+for batch_name, info_path_list in INFO_LIST.items():
+    info_list = [info for p in info_path_list for info in load_info(INFO_ROOT / p)['infos']]
 
-    cls_box_size = box_size_by_class(new_info_dict)
-    print(f'subset after interval {sub_set_interval}')
-    print(' '.join([str(len(cls_box_size[n])) if n in cls_box_size else '0' for n in CLASS_NAMES]))
+    new_info_dict = sample_with_interval(info_list, batch_name, interval=sample_interval)
+    print('create sampled info', new_info_dict['metadata'])
 
-    write_info('{}_interval_{}_clip_{}_frames_{}.pkl'.\
-        format(info_name, sub_set_interval,
+    # write_info('{}_interval_{}_clip_{}_frame_{}.pkl'.\
+    #     format(batch_name, sample_interval,
+    #            new_info_dict['metadata']['num_clips'],
+    #            new_info_dict['metadata']['num_frames']), new_info_dict)
+    write_info('{}_val_clip_{}_frame_{}.pkl'.\
+        format(batch_name,
                new_info_dict['metadata']['num_clips'],
                new_info_dict['metadata']['num_frames']), new_info_dict)
+
+# cls_box_size = box_size_by_class(new_info_dict)
+# print(f'subset after interval {sub_set_interval}')
+# print(' '.join([str(len(cls_box_size[n])) if n in cls_box_size else '0' for n in CLASS_NAMES]))
 
 # fig = plt.figure('box size')
 # ax = fig.add_subplot(111, projection='3d')

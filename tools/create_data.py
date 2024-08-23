@@ -84,12 +84,12 @@ if __name__ == '__main__':
             root_path=args.root_path,
             out_dir=args.out_dir / args.dataset,
             batch_names=[
-                'CITY-3D-0529-undownloaded',
-                'E03-CITY-20240702-undownloaded',
-                'E03-HY-20240702-undownloaded',
-                'HY-3D-0529-undownloaded',
-                'NON-E03-CITY-20240702-undownloaded',
-                'NON-E03-HY-20240702-undownloaded',
+                'CITY-ONLY-3D-L2+-NON-E03-240423',
+                'CITY-ONLY-3D-L2+-NON-E03-240529',
+                'CITY-ONLY-3D-L2+-NON-E03-240702',
+                'HIGHWAY-23D-L2+-NON-E03-240423',
+                'HIGHWAY-23D-L2+-NON-E03-240529',
+                'HIGHWAY-23D-L2+-NON-E03-240702',
             ],
             workers=args.workers)
     else:

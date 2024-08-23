@@ -1,6 +1,6 @@
 from configs.centerpoint.hv01_second_secfpn import train_pipeline, eval_pipeline
 
-_base_ = ['./cbgs_dv01_second_secfpn.py']
+_base_ = ['./cbgs_dv01_c64_second_secfpn.py']
 
 search = lambda lst, val: next(d for d in lst if d.get('type') == val)
 
@@ -21,4 +21,3 @@ data = dict(
     val=dict(pipeline=eval_pipeline),
     test=dict(pipeline=eval_pipeline),
 )
-runner = dict(max_epochs=9)
