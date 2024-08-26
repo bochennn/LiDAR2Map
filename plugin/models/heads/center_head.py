@@ -24,7 +24,8 @@ class CenterPointBBoxCoder(_CenterPointBBoxCoder):
                dim: torch.Tensor,
                vel: torch.Tensor,
                reg: torch.Tensor = None,
-               task_id: int = -1):
+               task_id: int = -1,
+               skip_mask: bool = False):
         """Decode bboxes.
 
         Args:
@@ -103,16 +104,16 @@ class CenterPointBBoxCoder(_CenterPointBBoxCoder):
                 self.post_center_range = torch.tensor(
                     self.post_center_range, device=heat.device)
 
-            mask = (final_box_preds[..., :3] >=
-                    self.post_center_range[:3]).all(2)
-            mask &= (final_box_preds[..., :3] <=
-                     self.post_center_range[3:]).all(2)
+            mask = (final_box_preds[..., :3] >= self.post_center_range[:3]).all(2)
+            mask &= (final_box_preds[..., :3] <= self.post_center_range[3:]).all(2)
 
             predictions_dicts = []
             for i in range(batch):
                 cmask = mask[i, :]
                 if self.score_threshold:
                     cmask &= thresh_mask[i]
+                if skip_mask:
+                    cmask = torch.ones_like(cmask).bool()
 
                 boxes3d = final_box_preds[i, cmask]
                 scores = final_scores[i, cmask]
@@ -350,18 +351,17 @@ class CenterHead(_CenterHead):
             pred, target_box, bbox_weights, avg_factor=(num + 1e-4))
 
         if 'iou' in task_preds:
-            # with torch
             target_box_preds = self.bbox_coder.decode(
                 heatmap.eq(1).float(),
                 task_preds['rot'][:, 0:1], task_preds['rot'][:, 1:2],
                 task_preds['height'], task_preds['dim'],
-                task_preds.get('vel'), task_preds['reg']
+                task_preds.get('vel'), task_preds['reg'], skip_mask=True
             )  # (B, H, W, 7 or 9)
 
             pred_iou = self.bbox_coder._transpose_and_gather_feat(task_preds['iou'], ind)
-            iou_loss = self.iou_loss(pred_iou, target_box_preds, target_box, mask)
+            iou_loss = self.loss_iou(pred_iou, target_box_preds, target_box, mask)
         else:
-            iou_loss = None
+            iou_loss = loss_bbox.new_tensor(0.)
 
         return loss_heatmap, loss_bbox, iou_loss
 
@@ -392,11 +392,12 @@ class CenterHead(_CenterHead):
             loss_heatmap, loss_bbox, loss_iou = self.loss_single(*preds_with_targets)
             loss_dict[f'task{task_id}.loss_heatmap'] = loss_heatmap
             loss_dict[f'task{task_id}.loss_bbox'] = loss_bbox
-            if loss_iou is not None:
-                loss_dict[f'task{task_id}.loss_iou'] = loss_iou
+            loss_dict[f'task{task_id}.loss_iou'] = loss_iou
 
+        print(loss_dict)
         return loss_dict
 
+    @torch.no_grad()
     def get_bboxes_single(
         self,
         task_preds: Dict[str, torch.Tensor],
@@ -474,7 +475,6 @@ class CenterHead(_CenterHead):
             ret_list.append([bboxes, scores, labels])
         return ret_list
 
-    @torch.no_grad()
     def get_bboxes(self, preds_dicts, img_metas, img=None, rescale=False):
         """Generate bboxes from bbox head predictions.
 
