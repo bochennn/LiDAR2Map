@@ -6,7 +6,7 @@ from ..log_mgr import logger
 
 def token_match(token_lists, verbose=False):
     diff_ts_list = list(set(token_lists[0]) - set(token_lists[1]))
-    logger.info("diff ts list: {}".format(diff_ts_list))
+    # logger.info("diff ts list: {}".format(diff_ts_list))
     token_sets = [set(token_list) for token_list in token_lists]
     matched_token_list = list(set.intersection(*token_sets))
     if verbose:

@@ -149,6 +149,7 @@ def main():
         set_random_seed(args.seed, deterministic=args.deterministic)
 
     # build the dataloader
+    cfg.data.test.update(pipeline=cfg.data.val.pipeline)
     dataset = build_dataset(cfg.data.test)
     data_loader = build_dataloader(dataset, **test_loader_cfg)
 

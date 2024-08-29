@@ -205,8 +205,8 @@ class ZDriveDataset(NuScenesDataset):
                 )
                 pd_box_list.append(pd_box)
 
-            gt_box3d = det['gt_bboxes_3d']
-            gt_labels = det['gt_labels_3d']
+            gt_box3d = det['gt_bboxes_3d'].data
+            gt_labels = det['gt_labels_3d'].data
 
             gt_box_center = gt_box3d.gravity_center.numpy()
             gt_box_dims = gt_box3d.dims.numpy()
@@ -278,7 +278,7 @@ class ZDriveDataset(NuScenesDataset):
         eval_metrics = dict()
         for cat_id in range(len(od_eval.category)):
             eval_metrics[f'AP@50/{od_eval.category[cat_id]}'] = od_eval.bbox_eval_result[
-                cat_id + cat_id * len(od_eval.distance)]['AP@50']
+                (cat_id + 1) * len(od_eval.distance) - 1]['AP@50']
 
         if out_dir:
             mmcv.dump(od_eval.bbox_eval_result, f'{out_dir}/metrics.json', indent=4, sort_keys=False)

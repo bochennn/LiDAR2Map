@@ -13,17 +13,17 @@ CLASS_NAMES = [
 ]
 
 INFO_ROOT = Path('/data/sfs_turbo/dataset/data_info')
-TEST_HIGHWAY = Path('/data/sfs_turbo/dataset/data_split/test_highway.txt')
+TEST_HIGHWAY = Path('/data/sfs_turbo/dataset/data_split/test_city.txt')
 
 INFO_LIST = {
-    # 'CITY-ONLY-3D-L2+-NON-E03': [
-    #     'CITY-ONLY-3D-L2+-NON-E03-240423_infos_clip_1764_frames_69848.pkl',
-    #     'CITY-ONLY-3D-L2+-NON-E03-240529_infos_clip_1134_frames_45116.pkl',
-    #     'CITY-ONLY-3D-L2+-NON-E03-240702_infos_clip_935_frames_37048.pkl'],
-    'HIGHWAY-23D-L2+-NON-E03': [
-        'HIGHWAY-23D-L2+-NON-E03-240423_infos_clip_4529_frames_178509.pkl',
-        'HIGHWAY-23D-L2+-NON-E03-240529_infos_clip_5933_frames_232061.pkl',
-        'HIGHWAY-23D-L2+-NON-E03-240702_infos_clip_5583_frames_220673.pkl'],
+    'CITY-ONLY-3D-L2+-NON-E03': [
+        'CITY-ONLY-3D-L2+-NON-E03-240423_infos_clip_1764_frame_69848.pkl',
+        'CITY-ONLY-3D-L2+-NON-E03-240529_infos_clip_1134_frame_45116.pkl',
+        'CITY-ONLY-3D-L2+-NON-E03-240702_infos_clip_935_frame_37048.pkl'],
+    # 'HIGHWAY-23D-L2+-NON-E03': [
+    #     'HIGHWAY-23D-L2+-NON-E03-240423_infos_clip_4529_frame_178509.pkl',
+    #     'HIGHWAY-23D-L2+-NON-E03-240529_infos_clip_5933_frame_232061.pkl',
+    #     'HIGHWAY-23D-L2+-NON-E03-240702_infos_clip_5583_frame_220673.pkl'],
 }
 
 
@@ -48,14 +48,14 @@ def sample_with_interval(info_list: List, info_name: str, interval: int):
     clip_names = np.unique([inf['scene_name'] for inf in info_list])
     clip_names.sort()
 
-    # clip_time_h, clip_indices = np.unique([
-    #     to_format_time(int(n.split('_')[-1])) for n in clip_names], return_inverse=True)
-    # clip_exclude_date = np.hstack([clip_names[clip_indices == i] for i, n in 
-    #     enumerate(clip_time_h) if n intestset_by_hour ])
-    # sample_clip_names = clip_exclude_date[::interval]
+    clip_time_h, clip_indices = np.unique([
+        to_format_time(int(n.split('_')[-1])) for n in clip_names], return_inverse=True)
+    clip_exclude_date = np.hstack([clip_names[clip_indices == i] for i, n in 
+        enumerate(clip_time_h) if n not in testset_by_hour])
+    sample_clip_names = clip_exclude_date[::interval]
 
-    clip_included = [n for n in clip_names if n in testset_highway]
-    sample_clip_names = clip_included[::interval]
+    # clip_included = [n for n in clip_names if n in testset_highway]
+    # sample_clip_names = clip_included[::interval]
 
     new_info = dict(infos=[inf for inf in info_list if inf['scene_name'] in sample_clip_names])
     new_info.update(metadata=dict(
@@ -79,7 +79,7 @@ def box_size_by_class(info_list: List):
 testset_highway = TEST_HIGHWAY.read_text().splitlines()
 testset_by_hour = np.unique([
     to_format_time(int(n.split('_')[-1])) for n in testset_highway])
-sample_interval = 5
+sample_interval = 2
 
 for batch_name, info_path_list in INFO_LIST.items():
     info_list = [info for p in info_path_list for info in load_info(INFO_ROOT / p)['infos']]
@@ -87,14 +87,14 @@ for batch_name, info_path_list in INFO_LIST.items():
     new_info_dict = sample_with_interval(info_list, batch_name, interval=sample_interval)
     print('create sampled info', new_info_dict['metadata'])
 
-    # write_info('{}_interval_{}_clip_{}_frame_{}.pkl'.\
-    #     format(batch_name, sample_interval,
-    #            new_info_dict['metadata']['num_clips'],
-    #            new_info_dict['metadata']['num_frames']), new_info_dict)
-    write_info('{}_val_clip_{}_frame_{}.pkl'.\
-        format(batch_name,
+    write_info('{}_interval_{}_clip_{}_frame_{}.pkl'.\
+        format(batch_name, sample_interval,
                new_info_dict['metadata']['num_clips'],
                new_info_dict['metadata']['num_frames']), new_info_dict)
+    # write_info('{}_val_clip_{}_frame_{}.pkl'.\
+    #     format(batch_name,
+    #            new_info_dict['metadata']['num_clips'],
+    #            new_info_dict['metadata']['num_frames']), new_info_dict)
 
 # cls_box_size = box_size_by_class(new_info_dict)
 # print(f'subset after interval {sub_set_interval}')

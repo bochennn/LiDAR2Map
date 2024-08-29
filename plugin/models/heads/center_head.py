@@ -24,6 +24,7 @@ class CenterPointBBoxCoder(_CenterPointBBoxCoder):
                dim: torch.Tensor,
                vel: torch.Tensor,
                reg: torch.Tensor = None,
+               iou: torch.Tensor = None,
                task_id: int = -1,
                skip_mask: bool = False):
         """Decode bboxes.
@@ -90,6 +91,11 @@ class CenterPointBBoxCoder(_CenterPointBBoxCoder):
             vel = self._transpose_and_gather_feat(vel, inds)
             vel = vel.view(batch, self.max_num, 2)
             final_box_preds = torch.cat([xs, ys, hei, dim, rot, vel], dim=2)
+
+        if iou is not None:
+            iou = self._transpose_and_gather_feat(iou, inds)
+            iou = torch.clamp(iou.view(batch, self.max_num), min=0, max=1.0)
+            scores = torch.pow(scores, 1 - 0.7) * torch.pow(iou, 0.7)
 
         final_scores = scores
         final_preds = clses
@@ -394,7 +400,6 @@ class CenterHead(_CenterHead):
             loss_dict[f'task{task_id}.loss_bbox'] = loss_bbox
             loss_dict[f'task{task_id}.loss_iou'] = loss_iou
 
-        print(loss_dict)
         return loss_dict
 
     @torch.no_grad()
@@ -417,9 +422,11 @@ class CenterHead(_CenterHead):
         batch_rotc = task_preds['rot'][:, 1].unsqueeze(1)
         batch_vel = task_preds.get('vel')
 
+        batch_iou = (task_preds['iou'] + 1) * 0.5 if 'iou' in task_preds else None
+
         temp = self.bbox_coder.decode(batch_heatmap, batch_rots, batch_rotc,
                                       batch_hei, batch_dim, batch_vel,
-                                      reg=batch_reg, task_id=task_id)
+                                      reg=batch_reg, iou=batch_iou, task_id=task_id)
         assert self.test_cfg['nms_type'] in ['circle', 'rotate']
         batch_reg_preds = [box['bboxes'] for box in temp]
         batch_cls_preds = [box['scores'] for box in temp]

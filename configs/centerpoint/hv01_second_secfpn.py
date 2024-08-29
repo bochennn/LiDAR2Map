@@ -142,12 +142,22 @@ eval_pipeline = [
     dict(type='Collect3D', keys=['points'],
          meta_keys=['gt_bboxes_3d', 'gt_labels_3d', 'box_type_3d'])
 ]
+test_pipeline = [
+    dict(type='LoadPointsFromFile',
+         load_dim=4, use_dim=4, convert_ego=True),
+    dict(type='PointsRangeFilter',
+         point_cloud_range=POINT_CLOUD_RANGE,
+         min_point_cloud_range=[-1, -1, 4, 1]),
+    dict(type='DefaultFormatBundle3D', class_names=CLASS_NAMES),
+    dict(type='Collect3D', keys=['points'],
+         meta_keys=['box_type_3d'])
+]
 
 data = dict(
     samples_per_gpu=BATCH_SIZE,
     train=dict(pipeline=train_pipeline),
     val=dict(pipeline=eval_pipeline),
-    test=dict(pipeline=eval_pipeline)
+    test=dict(pipeline=test_pipeline)
 )
 
 optimizer = dict(lr=BASE_LR)
