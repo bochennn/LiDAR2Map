@@ -67,14 +67,8 @@ class IoU3DLoss(nn.Module):
             return (pred_iou * 0.).sum()
         mask = mask.bool()
 
-        selected_pred_boxes = torch.cat([
-            _box['bboxes'][_mask] for _box, _mask in zip(pred_boxes, mask)])
-        selected_pred_boxes = selected_pred_boxes.unsqueeze(0)
-
-        selected_gt_boxes = gt_boxes[mask]
-        selected_gt_boxes[:, 6:7] = torch.atan2(selected_gt_boxes[:, 6:7],
-                                                selected_gt_boxes[:, 7:8])
-        selected_gt_boxes = selected_gt_boxes[:, :7].unsqueeze(0)
+        selected_pred_boxes = torch.cat([_box[_mask] for _box, _mask in zip(pred_boxes, mask)]).unsqueeze(0)
+        selected_gt_boxes = gt_boxes[mask].unsqueeze(0)
 
         target_iou = diff_iou_rotated_3d(selected_pred_boxes, selected_gt_boxes).view(-1)
         target_iou = target_iou * 2 - 1  # [0, 1] ==> [-1, 1]

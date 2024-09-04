@@ -11,22 +11,77 @@ from mmdet3d.models.dense_heads.centerpoint_head import \
     CenterHead as _CenterHead
 from mmdet3d.models.utils import clip_sigmoid
 from mmdet.core.bbox.builder import BBOX_CODERS
+from mmdet.core.utils import multi_apply
 
 
 @BBOX_CODERS.register_module(force=True)
 class CenterPointBBoxCoder(_CenterPointBBoxCoder):
 
-    def decode(self,
-               heat: torch.Tensor,
-               rot_sine: torch.Tensor,
-               rot_cosine: torch.Tensor,
-               hei: torch.Tensor,
-               dim: torch.Tensor,
-               vel: torch.Tensor,
-               reg: torch.Tensor = None,
-               iou: torch.Tensor = None,
-               task_id: int = -1,
-               skip_mask: bool = False):
+    def gather_feat(
+        self,
+        inds: torch.Tensor,
+        xs: torch.Tensor,
+        ys: torch.Tensor,
+        rot: torch.Tensor,
+        hei: torch.Tensor,
+        dim: torch.Tensor,
+        reg: torch.Tensor,
+        vel: torch.Tensor = None,
+        task_id: int = -1,
+    ):
+        batch, _ = inds.shape
+
+        if reg is not None:
+            reg = self._transpose_and_gather_feat(reg, inds)
+            reg = reg.view(batch, self.max_num, 2)
+            xs = xs.view(batch, self.max_num, 1) + reg[:, :, 0:1]
+            ys = ys.view(batch, self.max_num, 1) + reg[:, :, 1:2]
+        else:
+            xs = xs.view(batch, self.max_num, 1) + 0.5
+            ys = ys.view(batch, self.max_num, 1) + 0.5
+
+        # rotation value and direction label
+        rot_sine = self._transpose_and_gather_feat(rot[:, 0:1], inds)
+        rot_sine = rot_sine.view(batch, self.max_num, 1)
+
+        rot_cosine = self._transpose_and_gather_feat(rot[:, 1:2], inds)
+        rot_cosine = rot_cosine.view(batch, self.max_num, 1)
+        rot = torch.atan2(rot_sine, rot_cosine)
+
+        # height in the bev
+        hei = self._transpose_and_gather_feat(hei, inds)
+        hei = hei.view(batch, self.max_num, 1)
+
+        # dim of the box
+        dim = self._transpose_and_gather_feat(dim, inds)
+        dim = dim.view(batch, self.max_num, 3)
+
+        xs = xs.view(batch, self.max_num, 1) * \
+            self.out_size_factor[task_id] * self.voxel_size[0] + self.pc_range[0]
+        ys = ys.view(batch, self.max_num, 1) * \
+            self.out_size_factor[task_id] * self.voxel_size[1] + self.pc_range[1]
+
+        if vel is None:  # KITTI FORMAT
+            final_box_preds = torch.cat([xs, ys, hei, dim, rot], dim=2)
+        else:  # exist velocity, nuscene format
+            vel = self._transpose_and_gather_feat(vel, inds)
+            vel = vel.view(batch, self.max_num, 2)
+            final_box_preds = torch.cat([xs, ys, hei, dim, rot, vel], dim=2)
+
+        return final_box_preds
+
+    def decode(
+        self,
+        heat: torch.Tensor,
+        rot: torch.Tensor,
+        hei: torch.Tensor,
+        dim: torch.Tensor,
+        reg: torch.Tensor = None,
+        vel: torch.Tensor = None,
+        iou: torch.Tensor = None,
+        task_id: int = -1,
+        # skip_mask: bool = False
+    ):
         """Decode bboxes.
 
         Args:
@@ -50,47 +105,11 @@ class CenterPointBBoxCoder(_CenterPointBBoxCoder):
         batch, _, _, _ = heat.size()
 
         scores, inds, clses, ys, xs = self._topk(heat, K=self.max_num)
-
-        if reg is not None:
-            reg = self._transpose_and_gather_feat(reg, inds)
-            reg = reg.view(batch, self.max_num, 2)
-            xs = xs.view(batch, self.max_num, 1) + reg[:, :, 0:1]
-            ys = ys.view(batch, self.max_num, 1) + reg[:, :, 1:2]
-        else:
-            xs = xs.view(batch, self.max_num, 1) + 0.5
-            ys = ys.view(batch, self.max_num, 1) + 0.5
-
-        # rotation value and direction label
-        rot_sine = self._transpose_and_gather_feat(rot_sine, inds)
-        rot_sine = rot_sine.view(batch, self.max_num, 1)
-
-        rot_cosine = self._transpose_and_gather_feat(rot_cosine, inds)
-        rot_cosine = rot_cosine.view(batch, self.max_num, 1)
-        rot = torch.atan2(rot_sine, rot_cosine)
-
-        # height in the bev
-        hei = self._transpose_and_gather_feat(hei, inds)
-        hei = hei.view(batch, self.max_num, 1)
-
-        # dim of the box
-        dim = self._transpose_and_gather_feat(dim, inds)
-        dim = dim.view(batch, self.max_num, 3)
+        final_box_preds = self.gather_feat(inds, xs, ys, rot, hei, dim, reg, vel, task_id)
 
         # class label
         clses = clses.view(batch, self.max_num).float()
         scores = scores.view(batch, self.max_num)
-
-        xs = xs.view(batch, self.max_num, 1) * \
-            self.out_size_factor[task_id] * self.voxel_size[0] + self.pc_range[0]
-        ys = ys.view(batch, self.max_num, 1) * \
-            self.out_size_factor[task_id] * self.voxel_size[1] + self.pc_range[1]
-
-        if vel is None:  # KITTI FORMAT
-            final_box_preds = torch.cat([xs, ys, hei, dim, rot], dim=2)
-        else:  # exist velocity, nuscene format
-            vel = self._transpose_and_gather_feat(vel, inds)
-            vel = vel.view(batch, self.max_num, 2)
-            final_box_preds = torch.cat([xs, ys, hei, dim, rot, vel], dim=2)
 
         if iou is not None:
             iou = self._transpose_and_gather_feat(iou, inds)
@@ -118,8 +137,6 @@ class CenterPointBBoxCoder(_CenterPointBBoxCoder):
                 cmask = mask[i, :]
                 if self.score_threshold:
                     cmask &= thresh_mask[i]
-                if skip_mask:
-                    cmask = torch.ones_like(cmask).bool()
 
                 boxes3d = final_box_preds[i, cmask]
                 scores = final_scores[i, cmask]
@@ -204,34 +221,24 @@ class CenterHead(_CenterHead):
 
         # reorganize the gt_dict by tasks
         task_masks = []
-        flag = 0
         for class_name in self.class_names: # label id
-            # task_masks.append([
-            #     torch.where(gt_labels_3d == class_name.index(i) + flag)
-            #     for i in class_name
-            # ])
             task_masks.append([
                 torch.where(gt_labels_3d == label_id) for label_id in class_name
             ])
-            flag += len(class_name)
 
-        task_boxes = []
-        task_classes = []
-        flag2 = 0
+        task_boxes, task_classes = [], []
         for idx, mask in enumerate(task_masks):
-            task_box = []
-            task_class = []
+            task_box, task_class = [], []
             for m in mask:
                 task_box.append(gt_bboxes_3d[m])
                 # 0 is background for each task, so we need to add 1 here.
                 task_class.append(torch.tensor(
                     [self.class_names[idx].index(i) + 1 for i in gt_labels_3d[m]]))
-                # task_class.append(gt_labels_3d[m] + 1 - flag2)
             task_boxes.append(torch.cat(task_box, axis=0).to(device))
             task_classes.append(torch.cat(task_class).long().to(device))
-            flag2 += len(mask)
+
         draw_gaussian = draw_heatmap_gaussian
-        heatmaps, anno_boxes, inds, masks = [], [], [], []
+        heatmaps, anno_boxes, anno_boxes_raw, inds, masks = [], [], [], [], []
 
         for idx, _ in enumerate(self.task_heads):
             feature_map_size = \
@@ -243,8 +250,10 @@ class CenterHead(_CenterHead):
 
             if self.with_velocity:
                 anno_box = gt_bboxes_3d.new_zeros((max_objs, 10), dtype=torch.float32)
+                anno_box_raw = gt_bboxes_3d.new_zeros((max_objs, 9), dtype=torch.float32)
             else:
                 anno_box = gt_bboxes_3d.new_zeros((max_objs, 8), dtype=torch.float32)
+                anno_box_raw = gt_bboxes_3d.new_zeros((max_objs, 7), dtype=torch.float32)
 
             ind = gt_labels_3d.new_zeros((max_objs), dtype=torch.int64)
             mask = gt_bboxes_3d.new_zeros((max_objs), dtype=torch.uint8)
@@ -312,20 +321,42 @@ class CenterHead(_CenterHead):
                             torch.sin(rot).unsqueeze(0),
                             torch.cos(rot).unsqueeze(0)
                         ])
+                    anno_box_raw[new_idx] = task_boxes[idx][k]
 
             heatmaps.append(heatmap)
             anno_boxes.append(anno_box)
+            anno_boxes_raw.append(anno_box_raw)
             masks.append(mask)
             inds.append(ind)
-        return heatmaps, anno_boxes, inds, masks
+        return heatmaps, anno_boxes, anno_boxes_raw, inds, masks
+
+    def get_targets(
+        self,
+        gt_bboxes_3d: List[LiDARInstance3DBoxes],
+        gt_labels_3d: List[torch.Tensor],
+    ):
+        heatmaps, anno_boxes, anno_boxes_raw, inds, masks = multi_apply(
+            self.get_targets_single, gt_bboxes_3d, gt_labels_3d)
+        # Transpose heatmaps
+        heatmaps = [torch.stack(_hms) for _hms in map(list, zip(*heatmaps))]
+        # Transpose anno_boxes
+        anno_boxes = [torch.stack(_boxes) for _boxes in map(list, zip(*anno_boxes))]
+        anno_boxes_raw = [torch.stack(_boxes) for _boxes in map(list, zip(*anno_boxes_raw))]
+        # Transpose inds
+        inds = [torch.stack(_inds) for _inds in map(list, zip(*inds))]
+        # Transpose masks
+        masks = [torch.stack(_masks) for _masks in map(list, zip(*masks))]
+        return heatmaps, anno_boxes, anno_boxes_raw, inds, masks
 
     def loss_single(
         self,
         task_preds: Dict[str, torch.Tensor],
         heatmap: torch.Tensor,
         target_box: torch.Tensor,
+        target_box_raw: LiDARInstance3DBoxes,
         ind: torch.Tensor,
         mask: torch.Tensor,
+        task_id: int,
     ):
         task_preds['heatmap'] = clip_sigmoid(task_preds['heatmap'])
         num_pos = heatmap.eq(1).float().sum().item()
@@ -356,20 +387,26 @@ class CenterHead(_CenterHead):
         loss_bbox = self.loss_bbox(
             pred, target_box, bbox_weights, avg_factor=(num + 1e-4))
 
+        loss_dict = {
+            f'task{task_id}.loss_heatmap': loss_heatmap,
+            f'task{task_id}.loss_bbox': loss_bbox
+        }
+
         if 'iou' in task_preds:
-            target_box_preds = self.bbox_coder.decode(
-                heatmap.eq(1).float(),
-                task_preds['rot'][:, 0:1], task_preds['rot'][:, 1:2],
-                task_preds['height'], task_preds['dim'],
-                task_preds.get('vel'), task_preds['reg'], skip_mask=True
+            W = heatmap.shape[-1]
+            target_box_preds = self.bbox_coder.gather_feat(
+                ind, ind % W, torch.div(ind, W, rounding_mode='trunc'),
+                task_preds['rot'], task_preds['height'],
+                torch.exp(task_preds['dim']) if self.norm_bbox else task_preds['dim'],
+                task_preds['reg'], task_id=task_id
             )  # (B, H, W, 7 or 9)
 
             pred_iou = self.bbox_coder._transpose_and_gather_feat(task_preds['iou'], ind)
-            iou_loss = self.loss_iou(pred_iou, target_box_preds, target_box, mask)
-        else:
-            iou_loss = loss_bbox.new_tensor(0.)
 
-        return loss_heatmap, loss_bbox, iou_loss
+            loss_dict[f'task{task_id}.loss_iou'] = self.loss_iou(
+                pred_iou, target_box_preds, target_box_raw, mask)
+
+        return loss_dict
 
     @force_fp32(apply_to=('preds_dicts'))
     def loss(
@@ -390,15 +427,13 @@ class CenterHead(_CenterHead):
         Returns:
             dict[str:torch.Tensor]: Loss of heatmap and bbox of each task.
         """
-        heatmaps, anno_boxes, inds, masks = self.get_targets(gt_bboxes_3d, gt_labels_3d)
+        heatmaps, anno_boxes, anno_boxes_raw, inds, masks = self.get_targets(gt_bboxes_3d, gt_labels_3d)
 
         loss_dict = dict()
-        for task_id, preds_with_targets in enumerate(
-                zip(preds_dicts, heatmaps, anno_boxes, inds, masks)):
-            loss_heatmap, loss_bbox, loss_iou = self.loss_single(*preds_with_targets)
-            loss_dict[f'task{task_id}.loss_heatmap'] = loss_heatmap
-            loss_dict[f'task{task_id}.loss_bbox'] = loss_bbox
-            loss_dict[f'task{task_id}.loss_iou'] = loss_iou
+        for task_id, preds_with_targets in enumerate(zip(
+                preds_dicts, heatmaps, anno_boxes, anno_boxes_raw, inds, masks)):
+            loss_dict.update(self.loss_single(
+                *preds_with_targets, task_id=task_id))
 
         return loss_dict
 
@@ -418,15 +453,16 @@ class CenterHead(_CenterHead):
 
         batch_dim = torch.exp(task_preds['dim']) if self.norm_bbox else task_preds['dim']
 
-        batch_rots = task_preds['rot'][:, 0].unsqueeze(1)
-        batch_rotc = task_preds['rot'][:, 1].unsqueeze(1)
+        # batch_rots = task_preds['rot'][:, 0].unsqueeze(1)
+        # batch_rotc = task_preds['rot'][:, 1].unsqueeze(1)
+        batch_rot = task_preds['rot']
         batch_vel = task_preds.get('vel')
 
         batch_iou = (task_preds['iou'] + 1) * 0.5 if 'iou' in task_preds else None
 
-        temp = self.bbox_coder.decode(batch_heatmap, batch_rots, batch_rotc,
-                                      batch_hei, batch_dim, batch_vel,
-                                      reg=batch_reg, iou=batch_iou, task_id=task_id)
+        temp = self.bbox_coder.decode(batch_heatmap, batch_rot, batch_hei,
+                                      batch_dim, batch_reg, vel=batch_vel,
+                                      iou=batch_iou, task_id=task_id)
         assert self.test_cfg['nms_type'] in ['circle', 'rotate']
         batch_reg_preds = [box['bboxes'] for box in temp]
         batch_cls_preds = [box['scores'] for box in temp]
